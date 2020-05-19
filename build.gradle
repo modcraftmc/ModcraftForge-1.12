@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'red.mohist'
-version = 'BungeeCord' + 'git rev-parse --short HEAD'.execute().text.trim()
+version = 'BungeeCord-' + 'git rev-parse --short HEAD'.execute().text.trim()
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
