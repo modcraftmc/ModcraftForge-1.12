@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "package": "red.mohist.fabric.mixin.impl",
+  "compatibilityLevel": "JAVA_8",
+  "minVersion": "0.7.11",
+  "mixins": [
+    "MixinServerPlayer",
+    "MixinWorld",
+    "MixinServerWorld",
+	"PlayerManagerMixin",
+	"ServerCommandManagerMixin",
+	"SimpleCommandMapMixin",
+	"MinecraftServerMixin",
+	"PlayerAbilitiesMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

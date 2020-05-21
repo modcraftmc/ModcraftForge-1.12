@@ -1,0 +1,16 @@
+{
+  "id": "mohist",
+  "name": "Mohist",
+  "description": "Fabric <3 Bukkit!",
+  "version": "${version}",
+  "side": "universal",
+  "initializers": [
+    "red.mohist.fabric.Mohist"
+  ],
+  "requires": {
+  },
+  "mixins": {
+    "common": "mohist.common.json",
+    "server": "mohist.server.json"
+  }
+}
