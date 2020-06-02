@@ -62,6 +62,7 @@ public class ServerLaunchWrapper {
             System.out.println("");
             System.out.println("");
             System.out.println("                        " + Message.getString("forge.serverlanunchwrapper.1"));
+            System.out.println("                        " + "Async edition by ModcraftMC team");
             System.out.println(Message.getString("mohist.start"));
             System.out.println(Message.getString("load.libraries"));
             Mohist.LOGGER = LogManager.getLogger("Mohist");

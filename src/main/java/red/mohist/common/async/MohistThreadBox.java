@@ -19,6 +19,13 @@ public class MohistThreadBox {
 
     public static final ExecutorService Head = Executors.newFixedThreadPool(3,  new NamedThreadFactory("Head Conversion Thread"));
 
+    //ASYNC EDITION
+    @Async
+    public static final ExecutorService NMS_ENTITY_MOVE = Executors.newFixedThreadPool(4, new NamedThreadFactory("Nms Entity Async Thread"));
+
+    @Async
+    public static final ExecutorService MODDED_ENTITY_MOVE = Executors.newFixedThreadPool(4, new NamedThreadFactory("Modded Entity Async Thread"));
+
     public static class AssignableThread extends Thread {
         public AssignableThread(Runnable run) {
             super(run);
