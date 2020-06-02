@@ -1,6 +1,6 @@
 <img src="https://i.loli.net/2020/02/28/vZRHJACadF7rgn5.png">
 
-## Mohist-1.12.2
+## Mohist-1.12.2 - async edition - curently instable
 #### [中文](https://github.com/Mohist-Community/Mohist/blob/1.12.2/README-zh.md) | [Français](https://github.com/Mohist-Community/Mohist/blob/1.12.2/README-fr.md)
 
 ## It is highly recommended to use the 1.8+ version of Mohist to quickly resolve errors!
