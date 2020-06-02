@@ -25,4 +25,12 @@ public class AsyncProperties {
     public enum Type {
         VANILLA, MODDED
     }
+
+    @Override
+    public String toString() {
+        return "AsyncProperties{" +
+                "canAsync=" + canAsync +
+                ", asyncType=" + asyncType +
+                '}';
+    }
 }

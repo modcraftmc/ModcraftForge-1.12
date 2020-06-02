@@ -12,7 +12,7 @@
  import java.util.Random;
  import java.util.Set;
  import java.util.UUID;
-+import java.util.concurrent.ThreadLocalRandom;
++import java.util.concurrent.*;
  import javax.annotation.Nullable;
  import net.minecraft.advancements.CriteriaTriggers;
  import net.minecraft.block.Block;
@@ -31,7 +31,7 @@
  import net.minecraft.entity.player.EntityPlayer;
  import net.minecraft.entity.player.EntityPlayerMP;
  import net.minecraft.init.Blocks;
-@@ -77,26 +81,66 @@
+@@ -77,26 +81,68 @@
  import net.minecraft.util.text.event.HoverEvent;
  import net.minecraft.util.text.translation.I18n;
  import net.minecraft.world.Explosion;
@@ -63,10 +63,12 @@
 +import org.bukkit.event.vehicle.VehicleEnterEvent;
 +import org.bukkit.event.vehicle.VehicleExitEvent;
 +import org.bukkit.plugin.PluginManager;
++import org.jetbrains.annotations.NotNull;
 +import red.mohist.Mohist;
 +import red.mohist.common.RealTimeTicking;
 +import red.mohist.common.async.Async;
 +import red.mohist.common.async.AsyncProperties;
++import red.mohist.common.async.tasks.EntityMoveTask;
 +import red.mohist.configuration.MohistConfig;
  
 -public abstract class Entity implements ICommandSender
@@ -102,7 +104,7 @@
      public boolean forceSpawn;
      public World world;
      public double prevPosX;
-@@ -137,8 +181,8 @@
+@@ -137,8 +183,8 @@
      public float entityCollisionReduction;
      protected Random rand;
      public int ticksExisted;
@@ -113,7 +115,7 @@
      public int hurtResistantTime;
      protected boolean firstUpdate;
      protected boolean isImmuneToFire;
-@@ -172,14 +216,60 @@
+@@ -172,14 +218,60 @@
      protected UUID entityUniqueID;
      protected String cachedUniqueIdString;
      private final CommandResultStats cmdResultStats;
@@ -175,7 +177,7 @@
          this.entityId = nextEntityID++;
          this.riddenByEntities = Lists.<Entity>newArrayList();
          this.boundingBox = ZERO_AABB;
-@@ -190,7 +280,7 @@
+@@ -190,7 +282,7 @@
          this.rand = new Random();
          this.fire = -this.getFireImmuneTicks();
          this.firstUpdate = true;
@@ -184,7 +186,7 @@
          this.cachedUniqueIdString = this.entityUniqueID.toString();
          this.cmdResultStats = new CommandResultStats();
          this.tags = Sets.<String>newHashSet();
-@@ -200,8 +290,13 @@
+@@ -200,8 +292,13 @@
  
          if (worldIn != null)
          {
@@ -199,7 +201,7 @@
  
          this.dataManager = new EntityDataManager(this);
          this.dataManager.register(FLAGS, Byte.valueOf((byte)0));
-@@ -211,8 +306,18 @@
+@@ -211,8 +308,18 @@
          this.dataManager.register(SILENT, Boolean.valueOf(false));
          this.dataManager.register(NO_GRAVITY, Boolean.valueOf(false));
          this.entityInit();
@@ -218,7 +220,7 @@
      public int getEntityId()
      {
          return this.entityId;
-@@ -289,7 +394,7 @@
+@@ -289,7 +396,7 @@
                      break;
                  }
  
@@ -227,7 +229,7 @@
              }
  
              this.motionX = 0.0D;
-@@ -333,8 +438,35 @@
+@@ -333,8 +440,35 @@
          }
      }
  
@@ -264,7 +266,7 @@
          this.rotationYaw = yaw % 360.0F;
          this.rotationPitch = pitch % 360.0F;
      }
-@@ -344,6 +476,7 @@
+@@ -344,6 +478,7 @@
          this.posX = x;
          this.posY = y;
          this.posZ = z;
@@ -272,7 +274,7 @@
          float f = this.width / 2.0F;
          float f1 = this.height;
          this.setEntityBoundingBox(new AxisAlignedBB(x - (double)f, y, z - (double)f, x + (double)f, y + (double)f1, z + (double)f));
-@@ -376,72 +509,40 @@
+@@ -376,72 +511,40 @@
          this.onEntityUpdate();
      }
  
@@ -361,7 +363,7 @@
                      this.portalCounter = 0;
                  }
              }
-@@ -449,7 +550,33 @@
+@@ -449,7 +552,33 @@
              this.decrementTimeUntilPortal();
              this.world.profiler.endSection();
          }
@@ -395,7 +397,7 @@
          this.spawnRunningParticles();
          this.handleWaterMovement();
  
-@@ -517,6 +644,28 @@
+@@ -517,6 +646,28 @@
          if (!this.isImmuneToFire)
          {
              this.attackEntityFrom(DamageSource.LAVA, 4.0F);
@@ -424,31 +426,25 @@
              this.setFire(15);
          }
      }
-@@ -557,7 +706,22 @@
+@@ -557,7 +708,16 @@
          return this.world.getCollisionBoxes(this, bb).isEmpty() && !this.world.containsAnyLiquid(bb);
      }
  
 -    public void move(MoverType type, double x, double y, double z)
 +    public void move(MoverType type, double x, double y, double z) {
++
 +        if (this.asyncProperties.canAsync()) {
-+
-+            switch (this.asyncProperties.getAsyncType()) {
-+
-+                case MODDED: moveModded(type, x, y, z, true);
-+
-+                case VANILLA: moveVanilla(type, x, y, z, true);
-+            }
-+        } else {
-+
-+            moveVanilla(type, x, y, z , false);
++            world.addEntityMoveQueue(new EntityMoveTask(this.asyncProperties, this, type, x, y, z, System.currentTimeMillis()));
++        }  else {
++            moveEntity(type, x , y, z, false, this.asyncProperties.getAsyncType());
 +        }
 +    }
 +
-+    public void moveVanilla(MoverType type, double x, double y, double z, boolean async)
++    public void moveEntity(MoverType type, double x, double y, double z, boolean async, AsyncProperties.Type entityType)
      {
          if (this.noClip)
          {
-@@ -566,6 +730,25 @@
+@@ -566,6 +726,25 @@
          }
          else
          {
@@ -474,7 +470,7 @@
              if (type == MoverType.PISTON)
              {
                  long i = this.world.getTotalWorldTime();
-@@ -635,10 +818,6 @@
+@@ -635,10 +814,6 @@
                  this.motionZ = 0.0D;
              }
  
@@ -485,7 +481,7 @@
              if ((type == MoverType.SELF || type == MoverType.PLAYER) && this.onGround && this.isSneaking() && this instanceof EntityPlayer)
              {
                  for (double d5 = 0.05D; x != 0.0D && this.world.getCollisionBoxes(this, this.getEntityBoundingBox().offset(x, (double)(-this.stepHeight), 0.0D)).isEmpty(); d2 = x)
-@@ -899,6 +1078,33 @@
+@@ -899,6 +1074,33 @@
                  block.onLanded(this.world, this);
              }
  
@@ -519,483 +515,38 @@
              if (this.canTriggerWalking() && (!this.onGround || !this.isSneaking() || !(this instanceof EntityPlayer)) && !this.isRiding())
              {
                  double d15 = this.posX - d10;
-@@ -946,6 +1152,56 @@
+@@ -946,18 +1148,6 @@
                  }
              }
  
-+            boolean flag1 = this.isWet();
-+
-+            if (this.world.isFlammableWithin(this.getEntityBoundingBox().shrink(0.001D)))
-+            {
-+                this.dealFireDamage(1);
-+
-+                if (!flag1)
-+                {
-+                    ++this.fire;
-+
-+                    if (this.fire == 0)
-+                    {
-+                        // this.setFire(8);
-+                        EntityCombustEvent event = new org.bukkit.event.entity.EntityCombustByBlockEvent(null, getBukkitEntity(), 8);
-+                        world.getServer().getPluginManager().callEvent(event);
-+
-+                        if (!event.isCancelled()) {
-+                            this.setFire(event.getDuration());
-+                        }
-+                    }
-+                }
-+            }
-+            else if (this.fire <= 0)
-+            {
-+                this.fire = -this.getFireImmuneTicks();
-+            }
-+
-+            if (flag1 && this.isBurning())
-+            {
-+                this.playSound(SoundEvents.ENTITY_GENERIC_EXTINGUISH_FIRE, 0.7F, 1.6F + (this.rand.nextFloat() - this.rand.nextFloat()) * 0.4F);
-+                this.fire = -this.getFireImmuneTicks();
-+            }
-+
-+            this.world.profiler.endSection();
-+        }
-+    }
-+
-+    public void moveModded(MoverType type, double x, double y, double z, boolean async)
-+    {
-+        if (this.noClip)
-+        {
-+            this.setEntityBoundingBox(this.getEntityBoundingBox().offset(x, y, z));
-+            this.resetPositionToBB();
-+        }
-+        else
-+        {
-+            double d2 = x;
-+            double d3 = y;
-+            double d4 = z;
-+            // CraftBukkit start - Check if we're moving
-             try
-             {
-                 this.doBlockCollisions();
-@@ -957,7 +1213,411 @@
-                 this.addEntityCrashInfo(crashreportcategory);
-                 throw new ReportedException(crashreport);
-             }
-+            if (x == 0 && y == 0 && z == 0 && this.isBeingRidden() && this.isRiding()) {
-+                return;
-+            }
-+            // CraftBukkit end
-+            if (type == MoverType.PISTON)
-+            {
-+                long i = this.world.getTotalWorldTime();
- 
-+                if (i != this.pistonDeltasGameTime)
-+                {
-+                    Arrays.fill(this.pistonDeltas, 0.0D);
-+                    this.pistonDeltasGameTime = i;
-+                }
-+
-+                if (x != 0.0D)
-+                {
-+                    int j = EnumFacing.Axis.X.ordinal();
-+                    double d0 = MathHelper.clamp(x + this.pistonDeltas[j], -0.51D, 0.51D);
-+                    x = d0 - this.pistonDeltas[j];
-+                    this.pistonDeltas[j] = d0;
-+
-+                    if (Math.abs(x) <= 9.999999747378752E-6D)
-+                    {
-+                        return;
-+                    }
-+                }
-+                else if (y != 0.0D)
-+                {
-+                    int l4 = EnumFacing.Axis.Y.ordinal();
-+                    double d12 = MathHelper.clamp(y + this.pistonDeltas[l4], -0.51D, 0.51D);
-+                    y = d12 - this.pistonDeltas[l4];
-+                    this.pistonDeltas[l4] = d12;
-+
-+                    if (Math.abs(y) <= 9.999999747378752E-6D)
-+                    {
-+                        return;
-+                    }
-+                }
-+                else
-+                {
-+                    if (z == 0.0D)
-+                    {
-+                        return;
-+                    }
-+
-+                    int i5 = EnumFacing.Axis.Z.ordinal();
-+                    double d13 = MathHelper.clamp(z + this.pistonDeltas[i5], -0.51D, 0.51D);
-+                    z = d13 - this.pistonDeltas[i5];
-+                    this.pistonDeltas[i5] = d13;
-+
-+                    if (Math.abs(z) <= 9.999999747378752E-6D)
-+                    {
-+                        return;
-+                    }
-+                }
-+            }
-+
-+            this.world.profiler.startSection("move");
-+            double d10 = this.posX;
-+            double d11 = this.posY;
-+            double d1 = this.posZ;
-+
-+            if (this.isInWeb)
-+            {
-+                this.isInWeb = false;
-+                x *= 0.25D;
-+                y *= 0.05000000074505806D;
-+                z *= 0.25D;
-+                this.motionX = 0.0D;
-+                this.motionY = 0.0D;
-+                this.motionZ = 0.0D;
-+            }
-+
-+            if ((type == MoverType.SELF || type == MoverType.PLAYER) && this.onGround && this.isSneaking() && this instanceof EntityPlayer)
-+            {
-+                for (double d5 = 0.05D; x != 0.0D && this.world.getCollisionBoxes(this, this.getEntityBoundingBox().offset(x, (double)(-this.stepHeight), 0.0D)).isEmpty(); d2 = x)
-+                {
-+                    if (x < 0.05D && x >= -0.05D)
-+                    {
-+                        x = 0.0D;
-+                    }
-+                    else if (x > 0.0D)
-+                    {
-+                        x -= 0.05D;
-+                    }
-+                    else
-+                    {
-+                        x += 0.05D;
-+                    }
-+                }
-+
-+                for (; z != 0.0D && this.world.getCollisionBoxes(this, this.getEntityBoundingBox().offset(0.0D, (double)(-this.stepHeight), z)).isEmpty(); d4 = z)
-+                {
-+                    if (z < 0.05D && z >= -0.05D)
-+                    {
-+                        z = 0.0D;
-+                    }
-+                    else if (z > 0.0D)
-+                    {
-+                        z -= 0.05D;
-+                    }
-+                    else
-+                    {
-+                        z += 0.05D;
-+                    }
-+                }
-+
-+                for (; x != 0.0D && z != 0.0D && this.world.getCollisionBoxes(this, this.getEntityBoundingBox().offset(x, (double)(-this.stepHeight), z)).isEmpty(); d4 = z)
-+                {
-+                    if (x < 0.05D && x >= -0.05D)
-+                    {
-+                        x = 0.0D;
-+                    }
-+                    else if (x > 0.0D)
-+                    {
-+                        x -= 0.05D;
-+                    }
-+                    else
-+                    {
-+                        x += 0.05D;
-+                    }
-+
-+                    d2 = x;
-+
-+                    if (z < 0.05D && z >= -0.05D)
-+                    {
-+                        z = 0.0D;
-+                    }
-+                    else if (z > 0.0D)
-+                    {
-+                        z -= 0.05D;
-+                    }
-+                    else
-+                    {
-+                        z += 0.05D;
-+                    }
-+                }
-+            }
-+
-+            List<AxisAlignedBB> list1 = this.world.getCollisionBoxes(this, this.getEntityBoundingBox().expand(x, y, z));
-+            AxisAlignedBB axisalignedbb = this.getEntityBoundingBox();
-+
-+            if (y != 0.0D)
-+            {
-+                int k = 0;
-+
-+                for (int l = list1.size(); k < l; ++k)
-+                {
-+                    y = ((AxisAlignedBB)list1.get(k)).calculateYOffset(this.getEntityBoundingBox(), y);
-+                }
-+
-+                this.setEntityBoundingBox(this.getEntityBoundingBox().offset(0.0D, y, 0.0D));
-+            }
-+
-+            if (x != 0.0D)
-+            {
-+                int j5 = 0;
-+
-+                for (int l5 = list1.size(); j5 < l5; ++j5)
-+                {
-+                    x = ((AxisAlignedBB)list1.get(j5)).calculateXOffset(this.getEntityBoundingBox(), x);
-+                }
-+
-+                if (x != 0.0D)
-+                {
-+                    this.setEntityBoundingBox(this.getEntityBoundingBox().offset(x, 0.0D, 0.0D));
-+                }
-+            }
-+
-+            if (z != 0.0D)
-+            {
-+                int k5 = 0;
-+
-+                for (int i6 = list1.size(); k5 < i6; ++k5)
-+                {
-+                    z = ((AxisAlignedBB)list1.get(k5)).calculateZOffset(this.getEntityBoundingBox(), z);
-+                }
-+
-+                if (z != 0.0D)
-+                {
-+                    this.setEntityBoundingBox(this.getEntityBoundingBox().offset(0.0D, 0.0D, z));
-+                }
-+            }
-+
-+            boolean flag = this.onGround || d3 != y && d3 < 0.0D;
-+
-+            if (this.stepHeight > 0.0F && flag && (d2 != x || d4 != z))
-+            {
-+                double d14 = x;
-+                double d6 = y;
-+                double d7 = z;
-+                AxisAlignedBB axisalignedbb1 = this.getEntityBoundingBox();
-+                this.setEntityBoundingBox(axisalignedbb);
-+                y = (double)this.stepHeight;
-+                List<AxisAlignedBB> list = this.world.getCollisionBoxes(this, this.getEntityBoundingBox().expand(d2, y, d4));
-+                AxisAlignedBB axisalignedbb2 = this.getEntityBoundingBox();
-+                AxisAlignedBB axisalignedbb3 = axisalignedbb2.expand(d2, 0.0D, d4);
-+                double d8 = y;
-+                int j1 = 0;
-+
-+                for (int k1 = list.size(); j1 < k1; ++j1)
-+                {
-+                    d8 = ((AxisAlignedBB)list.get(j1)).calculateYOffset(axisalignedbb3, d8);
-+                }
-+
-+                axisalignedbb2 = axisalignedbb2.offset(0.0D, d8, 0.0D);
-+                double d18 = d2;
-+                int l1 = 0;
-+
-+                for (int i2 = list.size(); l1 < i2; ++l1)
-+                {
-+                    d18 = ((AxisAlignedBB)list.get(l1)).calculateXOffset(axisalignedbb2, d18);
-+                }
-+
-+                axisalignedbb2 = axisalignedbb2.offset(d18, 0.0D, 0.0D);
-+                double d19 = d4;
-+                int j2 = 0;
-+
-+                for (int k2 = list.size(); j2 < k2; ++j2)
-+                {
-+                    d19 = ((AxisAlignedBB)list.get(j2)).calculateZOffset(axisalignedbb2, d19);
-+                }
-+
-+                axisalignedbb2 = axisalignedbb2.offset(0.0D, 0.0D, d19);
-+                AxisAlignedBB axisalignedbb4 = this.getEntityBoundingBox();
-+                double d20 = y;
-+                int l2 = 0;
-+
-+                for (int i3 = list.size(); l2 < i3; ++l2)
-+                {
-+                    d20 = ((AxisAlignedBB)list.get(l2)).calculateYOffset(axisalignedbb4, d20);
-+                }
-+
-+                axisalignedbb4 = axisalignedbb4.offset(0.0D, d20, 0.0D);
-+                double d21 = d2;
-+                int j3 = 0;
-+
-+                for (int k3 = list.size(); j3 < k3; ++j3)
-+                {
-+                    d21 = ((AxisAlignedBB)list.get(j3)).calculateXOffset(axisalignedbb4, d21);
-+                }
-+
-+                axisalignedbb4 = axisalignedbb4.offset(d21, 0.0D, 0.0D);
-+                double d22 = d4;
-+                int l3 = 0;
-+
-+                for (int i4 = list.size(); l3 < i4; ++l3)
-+                {
-+                    d22 = ((AxisAlignedBB)list.get(l3)).calculateZOffset(axisalignedbb4, d22);
-+                }
-+
-+                axisalignedbb4 = axisalignedbb4.offset(0.0D, 0.0D, d22);
-+                double d23 = d18 * d18 + d19 * d19;
-+                double d9 = d21 * d21 + d22 * d22;
-+
-+                if (d23 > d9)
-+                {
-+                    x = d18;
-+                    z = d19;
-+                    y = -d8;
-+                    this.setEntityBoundingBox(axisalignedbb2);
-+                }
-+                else
-+                {
-+                    x = d21;
-+                    z = d22;
-+                    y = -d20;
-+                    this.setEntityBoundingBox(axisalignedbb4);
-+                }
-+
-+                int j4 = 0;
-+
-+                for (int k4 = list.size(); j4 < k4; ++j4)
-+                {
-+                    y = ((AxisAlignedBB)list.get(j4)).calculateYOffset(this.getEntityBoundingBox(), y);
-+                }
-+
-+                this.setEntityBoundingBox(this.getEntityBoundingBox().offset(0.0D, y, 0.0D));
-+
-+                if (d14 * d14 + d7 * d7 >= x * x + z * z)
-+                {
-+                    x = d14;
-+                    y = d6;
-+                    z = d7;
-+                    this.setEntityBoundingBox(axisalignedbb1);
-+                }
-+            }
-+
-+            this.world.profiler.endSection();
-+            this.world.profiler.startSection("rest");
-+            this.resetPositionToBB();
-+            this.collidedHorizontally = d2 != x || d4 != z;
-+            this.collidedVertically = d3 != y;
-+            this.onGround = this.collidedVertically && d3 < 0.0D;
-+            this.collided = this.collidedHorizontally || this.collidedVertically;
-+            int j6 = MathHelper.floor(this.posX);
-+            int i1 = MathHelper.floor(this.posY - 0.20000000298023224D);
-+            int k6 = MathHelper.floor(this.posZ);
-+            BlockPos blockpos = new BlockPos(j6, i1, k6);
-+            IBlockState iblockstate = this.world.getBlockState(blockpos);
-+
-+            if (iblockstate.getMaterial() == Material.AIR)
-+            {
-+                BlockPos blockpos1 = blockpos.down();
-+                IBlockState iblockstate1 = this.world.getBlockState(blockpos1);
-+                Block block1 = iblockstate1.getBlock();
-+
-+                if (block1 instanceof BlockFence || block1 instanceof BlockWall || block1 instanceof BlockFenceGate)
-+                {
-+                    iblockstate = iblockstate1;
-+                    blockpos = blockpos1;
-+                }
-+            }
-+
-+            this.updateFallState(y, this.onGround, iblockstate, blockpos);
-+
-+            if (d2 != x)
-+            {
-+                this.motionX = 0.0D;
-+            }
-+
-+            if (d4 != z)
-+            {
-+                this.motionZ = 0.0D;
-+            }
-+
-+            Block block = iblockstate.getBlock();
-+
-+            if (d3 != y)
-+            {
-+                block.onLanded(this.world, this);
-+            }
-+
-+            if (collidedHorizontally && getBukkitEntity() instanceof Vehicle) {
-+                Vehicle vehicle = (Vehicle) this.getBukkitEntity();
-+                org.bukkit.block.Block bl = this.world.getWorld().getBlockAt(MathHelper.floor(this.posX), MathHelper.floor(this.posY), MathHelper.floor(this.posZ));
-+
-+                if (d2 > x) {
-+                    bl = bl.getRelative(BlockFace.EAST);
-+                } else if (d2 < x) {
-+                    bl = bl.getRelative(BlockFace.WEST);
-+                } else if (d4 > z) {
-+                    bl = bl.getRelative(BlockFace.SOUTH);
-+                } else if (d4 < z) {
-+                    bl = bl.getRelative(BlockFace.NORTH);
-+                }
-+
-+                if (bl.getType() != org.bukkit.Material.AIR) {
-+                    @Async
-+                    VehicleBlockCollisionEvent event = new VehicleBlockCollisionEvent(vehicle, bl);
-+                    if (async) {
-+                        getServer().processQueue.add(()-> world.getServer().getPluginManager().callEvent(event));
-+                    } else {
-+                        world.getServer().getPluginManager().callEvent(event);
-+                    }
-+                }
-+            }
-+
-+            if (this.canTriggerWalking() && (!this.onGround || !this.isSneaking() || !(this instanceof EntityPlayer)) && !this.isRiding())
-+            {
-+                double d15 = this.posX - d10;
-+                double d16 = this.posY - d11;
-+                double d17 = this.posZ - d1;
-+
-+                if (block != Blocks.LADDER)
-+                {
-+                    d16 = 0.0D;
-+                }
-+
-+                if (block != null && this.onGround)
-+                {
-+                    block.onEntityWalk(this.world, blockpos, this);
-+                }
-+
-+                this.distanceWalkedModified = (float)((double)this.distanceWalkedModified + (double)MathHelper.sqrt(d15 * d15 + d17 * d17) * 0.6D);
-+                this.distanceWalkedOnStepModified = (float)((double)this.distanceWalkedOnStepModified + (double)MathHelper.sqrt(d15 * d15 + d16 * d16 + d17 * d17) * 0.6D);
-+
-+                if (this.distanceWalkedOnStepModified > (float)this.nextStepDistance && iblockstate.getMaterial() != Material.AIR)
-+                {
-+                    this.nextStepDistance = (int)this.distanceWalkedOnStepModified + 1;
-+
-+                    if (this.isInWater())
-+                    {
-+                        Entity entity = this.isBeingRidden() && this.getControllingPassenger() != null ? this.getControllingPassenger() : this;
-+                        float f = entity == this ? 0.35F : 0.4F;
-+                        float f1 = MathHelper.sqrt(entity.motionX * entity.motionX * 0.20000000298023224D + entity.motionY * entity.motionY + entity.motionZ * entity.motionZ * 0.20000000298023224D) * f;
-+
-+                        if (f1 > 1.0F)
-+                        {
-+                            f1 = 1.0F;
-+                        }
-+
-+                        this.playSound(this.getSwimSound(), f1, 1.0F + (this.rand.nextFloat() - this.rand.nextFloat()) * 0.4F);
-+                    }
-+                    else
-+                    {
-+                        this.playStepSound(blockpos, block);
-+                    }
-+                }
-+                else if (this.distanceWalkedOnStepModified > this.nextFlap && this.makeFlySound() && iblockstate.getMaterial() == Material.AIR)
-+                {
-+                    this.nextFlap = this.playFlySound(this.distanceWalkedOnStepModified);
-+                }
-+            }
-+
+-            try
+-            {
+-                this.doBlockCollisions();
+-            }
+-            catch (Throwable throwable)
+-            {
+-                CrashReport crashreport = CrashReport.makeCrashReport(throwable, "Checking entity block collision");
+-                CrashReportCategory crashreportcategory = crashreport.makeCategory("Entity being checked for collision");
+-                this.addEntityCrashInfo(crashreportcategory);
+-                throw new ReportedException(crashreport);
+-            }
+-
              boolean flag1 = this.isWet();
  
              if (this.world.isFlammableWithin(this.getEntityBoundingBox().shrink(0.001D)))
-@@ -970,7 +1630,13 @@
+@@ -970,7 +1160,18 @@
  
                      if (this.fire == 0)
                      {
 -                        this.setFire(8);
-+                        // this.setFire(8);
 +                        EntityCombustEvent event = new org.bukkit.event.entity.EntityCombustByBlockEvent(null, getBukkitEntity(), 8);
-+                        world.getServer().getPluginManager().callEvent(event);
++
++                        if (async) {
++                            getServer().processQueue.add(() -> world.getServer().getPluginManager().callEvent(event));
++                        } else {
++                            world.getServer().getPluginManager().callEvent(event);
++                        }
++
 +
 +                        if (!event.isCancelled()) {
 +                            this.setFire(event.getDuration());
@@ -1003,7 +554,7 @@
                      }
                  }
              }
-@@ -995,6 +1661,7 @@
+@@ -995,6 +1196,7 @@
          this.posX = (axisalignedbb.minX + axisalignedbb.maxX) / 2.0D;
          this.posY = axisalignedbb.minY;
          this.posZ = (axisalignedbb.minZ + axisalignedbb.maxZ) / 2.0D;
@@ -1011,7 +562,7 @@
      }
  
      protected SoundEvent getSwimSound()
-@@ -1027,8 +1694,16 @@
+@@ -1027,8 +1229,16 @@
  
                          try
                          {
@@ -1030,7 +581,7 @@
                          }
                          catch (Throwable throwable)
                          {
-@@ -1053,7 +1728,7 @@
+@@ -1053,7 +1263,7 @@
  
      protected void playStepSound(BlockPos pos, Block blockIn)
      {
@@ -1039,7 +590,7 @@
  
          if (this.world.getBlockState(pos.up()).getBlock() == Blocks.SNOW_LAYER)
          {
-@@ -1140,6 +1815,14 @@
+@@ -1140,6 +1350,14 @@
          }
      }
  
@@ -1054,7 +605,7 @@
      public final boolean isImmuneToFire()
      {
          return this.isImmuneToFire;
-@@ -1259,6 +1942,7 @@
+@@ -1259,6 +1477,7 @@
          BlockPos blockpos = new BlockPos(i, j, k);
          IBlockState iblockstate = this.world.getBlockState(blockpos);
  
@@ -1062,7 +613,7 @@
          if (iblockstate.getRenderType() != EnumBlockRenderType.INVISIBLE)
          {
              this.world.spawnParticle(EnumParticleTypes.BLOCK_CRACK, this.posX + ((double)this.rand.nextFloat() - 0.5D) * (double)this.width, this.getEntityBoundingBox().minY + 0.1D, this.posZ + ((double)this.rand.nextFloat() - 0.5D) * (double)this.width, -this.motionX * 4.0D, 1.5D, -this.motionZ * 4.0D, Block.getStateId(iblockstate));
-@@ -1277,12 +1961,12 @@
+@@ -1277,12 +1496,12 @@
              BlockPos blockpos = new BlockPos(this.posX, d0, this.posZ);
              IBlockState iblockstate = this.world.getBlockState(blockpos);
  
@@ -1079,7 +630,7 @@
              }
              else
              {
-@@ -1293,7 +1977,12 @@
+@@ -1293,7 +1512,12 @@
  
      public boolean isInLava()
      {
@@ -1093,7 +644,7 @@
      }
  
      public void moveRelative(float strafe, float up, float forward, float friction)
-@@ -1354,6 +2043,11 @@
+@@ -1354,6 +1578,11 @@
  
      public void setWorld(World worldIn)
      {
@@ -1105,7 +656,7 @@
          this.world = worldIn;
      }
  
-@@ -1382,6 +2076,7 @@
+@@ -1382,6 +1611,7 @@
              this.prevRotationYaw -= 360.0F;
          }
  
@@ -1113,7 +664,7 @@
          this.setPosition(this.posX, this.posY, this.posZ);
          this.setRotation(yaw, pitch);
      }
-@@ -1671,6 +2366,16 @@
+@@ -1671,6 +1901,16 @@
          {
              compound.setTag("Pos", this.newDoubleNBTList(this.posX, this.posY, this.posZ));
              compound.setTag("Motion", this.newDoubleNBTList(this.motionX, this.motionY, this.motionZ));
@@ -1130,7 +681,7 @@
              compound.setTag("Rotation", this.newFloatNBTList(this.rotationYaw, this.rotationPitch));
              compound.setFloat("FallDistance", this.fallDistance);
              compound.setShort("Fire", (short)this.fire);
-@@ -1680,7 +2385,17 @@
+@@ -1680,7 +1920,17 @@
              compound.setBoolean("Invulnerable", this.invulnerable);
              compound.setInteger("PortalCooldown", this.timeUntilPortal);
              compound.setUniqueId("UUID", this.getUniqueID());
@@ -1149,7 +700,7 @@
              if (this.hasCustomName())
              {
                  compound.setString("CustomName", this.getCustomNameTag());
-@@ -1707,6 +2422,7 @@
+@@ -1707,6 +1957,7 @@
              {
                  compound.setBoolean("Glowing", this.glowing);
              }
@@ -1157,7 +708,7 @@
  
              if (!this.tags.isEmpty())
              {
-@@ -1720,6 +2436,9 @@
+@@ -1720,6 +1971,9 @@
                  compound.setTag("Tags", nbttaglist);
              }
  
@@ -1167,7 +718,7 @@
              this.writeEntityToNBT(compound);
  
              if (this.isBeingRidden())
-@@ -1741,7 +2460,6 @@
+@@ -1741,7 +1995,6 @@
                      compound.setTag("Passengers", nbttaglist1);
                  }
              }
@@ -1175,7 +726,7 @@
              return compound;
          }
          catch (Throwable throwable)
-@@ -1764,21 +2482,6 @@
+@@ -1764,21 +2017,6 @@
              this.motionY = nbttaglist2.getDoubleAt(1);
              this.motionZ = nbttaglist2.getDoubleAt(2);
  
@@ -1197,7 +748,7 @@
              this.posX = nbttaglist.getDoubleAt(0);
              this.posY = nbttaglist.getDoubleAt(1);
              this.posZ = nbttaglist.getDoubleAt(2);
-@@ -1826,7 +2529,11 @@
+@@ -1826,7 +2064,11 @@
              this.setSilent(compound.getBoolean("Silent"));
              this.setNoGravity(compound.getBoolean("NoGravity"));
              this.setGlowing(compound.getBoolean("Glowing"));
@@ -1209,7 +760,7 @@
              if (compound.hasKey("Tags", 9))
              {
                  this.tags.clear();
-@@ -1845,6 +2552,72 @@
+@@ -1845,6 +2087,72 @@
              {
                  this.setPosition(this.posX, this.posY, this.posZ);
              }
@@ -1282,7 +833,7 @@
          }
          catch (Throwable throwable)
          {
-@@ -1861,7 +2634,7 @@
+@@ -1861,7 +2169,7 @@
      }
  
      @Nullable
@@ -1291,7 +842,7 @@
      {
          ResourceLocation resourcelocation = EntityList.getKey(this);
          return resourcelocation == null ? null : resourcelocation.toString();
-@@ -1918,7 +2691,10 @@
+@@ -1918,7 +2226,10 @@
          {
              EntityItem entityitem = new EntityItem(this.world, this.posX, this.posY + (double)offsetY, this.posZ, stack);
              entityitem.setDefaultPickupDelay();
@@ -1303,7 +854,7 @@
              return entityitem;
          }
      }
-@@ -1985,6 +2761,7 @@
+@@ -1985,6 +2296,7 @@
              this.motionX = 0.0D;
              this.motionY = 0.0D;
              this.motionZ = 0.0D;
@@ -1311,7 +862,7 @@
              this.onUpdate();
  
              if (this.isRiding())
-@@ -2032,6 +2809,7 @@
+@@ -2032,6 +2344,7 @@
              }
          }
  
@@ -1319,7 +870,7 @@
          if (force || this.canBeRidden(entityIn) && entityIn.canFitPassenger(this))
          {
              if (this.isRiding())
-@@ -2067,6 +2845,7 @@
+@@ -2067,6 +2380,7 @@
          if (this.ridingEntity != null)
          {
              Entity entity = this.ridingEntity;
@@ -1327,7 +878,7 @@
              this.ridingEntity = null;
              entity.removePassenger(this);
          }
-@@ -2080,6 +2859,28 @@
+@@ -2080,6 +2394,28 @@
          }
          else
          {
@@ -1356,7 +907,7 @@
              if (!this.world.isRemote && passenger instanceof EntityPlayer && !(this.getControllingPassenger() instanceof EntityPlayer))
              {
                  this.riddenByEntities.add(0, passenger);
-@@ -2099,6 +2900,27 @@
+@@ -2099,6 +2435,27 @@
          }
          else
          {
@@ -1384,7 +935,7 @@
              this.riddenByEntities.remove(passenger);
              passenger.rideCooldown = 60;
          }
-@@ -2295,12 +3117,12 @@
+@@ -2295,12 +2652,12 @@
          this.setFlag(5, invisible);
      }
  
@@ -1399,18 +950,23 @@
      {
          byte b0 = ((Byte)this.dataManager.get(FLAGS)).byteValue();
  
-@@ -2321,17 +3143,52 @@
+@@ -2321,17 +2678,57 @@
  
      public void setAir(int air)
      {
 -        this.dataManager.set(AIR, Integer.valueOf(air));
++
++
 +        //this.dataManager.set(AIR, Integer.valueOf(air));
 +        EntityAirChangeEvent event = new EntityAirChangeEvent(this.getBukkitEntity(), air);
 +        event.getEntity().getServer().getPluginManager().callEvent(event);
 +        if (event.isCancelled()) {
 +            return;
 +        }
++
++
 +        this.dataManager.set(Entity.AIR, event.getAmount());
++
      }
  
      public void onStruckByLightning(EntityLightningBolt lightningBolt)
@@ -1454,7 +1010,7 @@
          }
      }
  
-@@ -2472,7 +3329,7 @@
+@@ -2472,7 +2869,7 @@
  
      public String toString()
      {
@@ -1463,7 +1019,7 @@
      }
  
      public boolean isEntityInvulnerable(DamageSource source)
-@@ -2509,57 +3366,62 @@
+@@ -2509,57 +2906,62 @@
      @Nullable
      public Entity changeDimension(int dimensionIn)
      {
@@ -1567,7 +1123,7 @@
              this.world.profiler.endStartSection("reloading");
              Entity entity = EntityList.newEntity(this.getClass(), worldserver1);
  
-@@ -2567,28 +3429,26 @@
+@@ -2567,28 +2969,26 @@
              {
                  entity.copyDataFromOld(this);
  
@@ -1605,7 +1161,7 @@
              return entity;
          }
          else
-@@ -2604,7 +3464,7 @@
+@@ -2604,7 +3004,7 @@
  
      public float getExplosionResistance(Explosion explosionIn, World worldIn, BlockPos pos, IBlockState blockStateIn)
      {
@@ -1614,7 +1170,7 @@
      }
  
      public boolean canExplosionDestroyBlock(Explosion explosionIn, World worldIn, BlockPos pos, IBlockState blockStateIn, float p_174816_5_)
-@@ -2717,6 +3577,11 @@
+@@ -2717,6 +3117,11 @@
  
      public void setCustomNameTag(String name)
      {
@@ -1626,7 +1182,7 @@
          this.dataManager.set(CUSTOM_NAME, name);
      }
  
-@@ -2800,7 +3665,25 @@
+@@ -2800,7 +3205,25 @@
  
      public void setEntityBoundingBox(AxisAlignedBB bb)
      {
@@ -1653,7 +1209,7 @@
      }
  
      public float getEyeHeight()
-@@ -2832,6 +3715,11 @@
+@@ -2832,6 +3255,11 @@
          return true;
      }
  
@@ -1665,7 +1221,7 @@
      public BlockPos getPosition()
      {
          return new BlockPos(this.posX, this.posY + 0.5D, this.posZ);
-@@ -2859,11 +3747,11 @@
+@@ -2859,11 +3287,11 @@
  
      public void setCommandStat(CommandResultStats.Type type, int amount)
      {
@@ -1681,7 +1237,7 @@
  
      @Nullable
      public MinecraftServer getServer()
-@@ -2901,6 +3789,217 @@
+@@ -2901,6 +3329,217 @@
          EnchantmentHelper.applyArthropodEnchantments(entityLivingBaseIn, entityIn);
      }
  
@@ -1899,7 +1455,7 @@
      public void addTrackingPlayer(EntityPlayerMP player)
      {
      }
-@@ -3069,7 +4168,7 @@
+@@ -3069,7 +3708,7 @@
          return SoundCategory.NEUTRAL;
      }
  
