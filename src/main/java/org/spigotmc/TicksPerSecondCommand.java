@@ -1,13 +1,16 @@
 package org.spigotmc;
 
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.dedicated.DedicatedServer;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.v1_12_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_12_R1.entity.CraftPlayer;
-import red.mohist.util.i18n.Message;
+import red.mohist.util.TPSTracker;
+
+import java.util.Arrays;
 
 public class TicksPerSecondCommand extends Command {
 
@@ -15,7 +18,6 @@ public class TicksPerSecondCommand extends Command {
         super(name);
         this.description = "Gets the current ticks per second for the server";
         this.usageMessage = "/tps";
-        this.setPermission("bukkit.command.tps");
     }
 
     public static String format(double tps)  // Paper - Made static
@@ -26,15 +28,14 @@ public class TicksPerSecondCommand extends Command {
 
     @Override
     public boolean execute(CommandSender sender, String currentAlias, String[] args) {
-        if (!testPermission(sender)) {
-            sender.sendMessage(Message.getString("command.nopermission"));
-            return true;
-        }
+
         World currentWorld = null;
         if (sender instanceof CraftPlayer) {
             currentWorld = ((CraftPlayer) sender).getWorld();
         }
-        sender.sendMessage(ChatColor.DARK_RED + "---------------------------------------");
+        sender.sendMessage(String
+                .format("%s%s%s-----------%s%s%s<%s%s Worlds %s%s%s>%s%s%s-----------", ChatColor.GRAY, ChatColor.BOLD, ChatColor.STRIKETHROUGH, ChatColor.DARK_GRAY, ChatColor.BOLD,
+                        ChatColor.STRIKETHROUGH, ChatColor.GREEN, ChatColor.ITALIC, ChatColor.DARK_GRAY, ChatColor.BOLD, ChatColor.STRIKETHROUGH, ChatColor.GRAY, ChatColor.BOLD, ChatColor.STRIKETHROUGH));
         final MinecraftServer server = MinecraftServer.getServerInst();
         ChatColor colourTPS;
         for (World world : server.server.getWorlds()) {
@@ -59,7 +60,7 @@ public class TicksPerSecondCommand extends Command {
 
                 sender.sendMessage(String.format("%s[%d] %s%s %s- %s%.2fms / %s%.2ftps", ChatColor.GOLD, dimensionId,
                         current ? ChatColor.GREEN : ChatColor.YELLOW, displayName, ChatColor.RESET,
-                        ChatColor.DARK_RED, worldTickTime, colourTPS, worldTPS));
+                        ChatColor.YELLOW, worldTickTime, colourTPS, worldTPS));
             }
         }
 
@@ -72,19 +73,39 @@ public class TicksPerSecondCommand extends Command {
         } else {
             colourTPS = ChatColor.RED;
         }
-        sender.sendMessage(String.format("%sOverall - %s%s%.2fms / %s%.2ftps", ChatColor.BLUE, ChatColor.RESET,
-                ChatColor.DARK_RED, meanTickTime, colourTPS, meanTPS));
-        sender.sendMessage(ChatColor.DARK_RED + "---------------------------------------");
+        sender.sendMessage(String.format("%s%sOverall: %s%s%.2fms / %s%.2ftps", ChatColor.WHITE, ChatColor.BOLD, ChatColor.RESET,
+                ChatColor.YELLOW, meanTickTime, colourTPS, meanTPS));
         // Paper start - Further improve tick handling
         double[] tps = org.bukkit.Bukkit.getTPS();
-        String[] tpsAvg = new String[tps.length];
-        for (int i = 0; i < tps.length; i++) {
-            tpsAvg[i] = format(tps[i]);
-        }
-        sender.sendMessage(ChatColor.GOLD + "TPS from last 1m, 5m, 15m: " + org.apache.commons.lang.StringUtils.join(tpsAvg, ", "));
+        String[] tpsAvg = Arrays.stream(tps).mapToObj(TicksPerSecondCommand::format).toArray(String[]::new);
 
+        sender.sendMessage(String
+                .format("%s%s%s-----------%s%s%s<%s%s TPS Graph (48 Seconds) %s%s%s>%s%s%s-----------", ChatColor.GRAY, ChatColor.BOLD, ChatColor.STRIKETHROUGH, ChatColor.DARK_GRAY, ChatColor.BOLD,
+                        ChatColor.STRIKETHROUGH, ChatColor.GREEN, ChatColor.ITALIC, ChatColor.DARK_GRAY, ChatColor.BOLD, ChatColor.STRIKETHROUGH, ChatColor.GRAY, ChatColor.BOLD, ChatColor.STRIKETHROUGH));
+        if (!TPSTracker.lines.isEmpty()) {
+            TPSTracker.lines.forEach(sender::sendMessage);
+        }
+        String status = ChatColor.GRAY + "Unknown";
+        try {
+            final double currentTPS = (double) (double) DedicatedServer.TPS;
+            if (currentTPS >= 17.0) {
+                status = ChatColor.GREEN + "STABLE";
+            } else if (currentTPS >= 15.0) {
+                status = ChatColor.YELLOW + "SOME STABILITY ISSUES";
+            } else if (currentTPS >= 10.0) {
+                status = ChatColor.RED + "LAGGING. CHECK TIMINGS.";
+            } else if (currentTPS < 10.0) {
+                status = ChatColor.DARK_RED + "UNSTABLE";
+            } else if (currentTPS < 3.0) {
+                status = ChatColor.RED + "SEND HELP!!!!!";
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        sender.sendMessage(String.format("%s%sServer Status: %s", ChatColor.WHITE, ChatColor.BOLD, status));
         return true;
     }
+
 
     private static final long mean(long[] array) {
         if (array == null || array.length == 0) return 0L;

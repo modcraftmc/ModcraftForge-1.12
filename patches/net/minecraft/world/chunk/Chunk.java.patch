@@ -385,7 +385,7 @@
      }
  
      public void markDirty()
-@@ -880,11 +996,52 @@
+@@ -880,11 +996,12 @@
  
      public void getEntitiesWithinAABBForEntity(@Nullable Entity entityIn, AxisAlignedBB aabb, List<Entity> listToFill, Predicate <? super Entity > filter)
      {
@@ -396,54 +396,46 @@
          i = MathHelper.clamp(i, 0, this.entityLists.length - 1);
          j = MathHelper.clamp(j, 0, this.entityLists.length - 1);
  
-+        List<ClassInheritanceMultiMap<Entity>> entityList = new ThreadSafeArrayList<>(true);
-+        Collections.addAll(entityList, this.entityLists);
 +
-+        for (int k = i; k <= j; ++k) {
-+
-+            for(int a=0; a<entityList.size(); a++) {
-+
-+                if (!entityList.isEmpty()) {
-+
-+                    if (!entityList.get(k).isEmpty()) {
-+
-+                        entityList.get(k).forEach(entity -> {
-+
-+                            if (entity.getEntityBoundingBox().intersects(aabb) && entity != entityIn) {
-+                                if (filter == null || filter.apply(entity)) {
-+                                    listToFill.add(entity);
-+                                }
-+
-+                                Entity[] aentity = entity.getParts();
-+
-+                                if (aentity != null) {
-+                                    for (Entity entity1 : aentity) {
-+                                        if (entity1 != entityIn && entity1.getEntityBoundingBox().intersects(aabb) && (filter == null || filter.apply(entity1))) {
-+                                            listToFill.add(entity1);
-+                                        }
-+                                    }
-+                                }
-+                            }
-+                        });
-+                    }
-+                }
-+
-+            }
-+
-+
-+
-+        }
-+
-+
-+
-+        /* orignal code
          for (int k = i; k <= j; ++k)
          {
              if (!this.entityLists[k].isEmpty())
-@@ -914,15 +1071,50 @@
+@@ -914,17 +1031,65 @@
                  }
              }
          }
++
++
++        /* orignal code
++        for (int k = i; k <= j; ++k)
++        {
++            if (!this.entityLists[k].isEmpty())
++            {
++                for (Entity entity : this.entityLists[k])
++                {
++                    if (entity.getEntityBoundingBox().intersects(aabb) && entity != entityIn)
++                    {
++                        if (filter == null || filter.apply(entity))
++                        {
++                            listToFill.add(entity);
++                        }
++
++                        Entity[] aentity = entity.getParts();
++
++                        if (aentity != null)
++                        {
++                            for (Entity entity1 : aentity)
++                            {
++                                if (entity1 != entityIn && entity1.getEntityBoundingBox().intersects(aabb) && (filter == null || filter.apply(entity1)))
++                                {
++                                    listToFill.add(entity1);
++                                }
++                            }
++                        }
++                    }
++                }
++            }
++        }
 +
 +         */
      }
@@ -470,33 +462,28 @@
 +        }
 +        // Paper end
 +
-+        List<ClassInheritanceMultiMap<Entity>> entityList = new ThreadSafeArrayList<>(true);
-+        Collections.addAll(entityList, this.entityLists);
-+
-+        for (int k = i; k <= j; ++k) {
-+
-+            for (Entity entity : entityList.get(k).getByClass(entityClass)) {
-+                
-+                    if (counts != null && counts[k] <= 0)
-+                        return; // Paper - Don't check a chunk if it doesn't have the type we are looking for
-+
-+                    if (entity.getEntityBoundingBox().intersects(aabb) && (filter == null || filter.apply((T) entity))) {
-+                        listToFill.add((T) entity);
-+                    }
-+
-+            }
-+
-+
-+        }
-+
-+        /* original code
          for (int k = i; k <= j; ++k)
          {
++            if (counts != null && counts[k] <= 0) continue; // Paper - Don't check a chunk if it doesn't have the type we are looking for
              for (T t : this.entityLists[k].getByClass(entityClass))
-@@ -933,8 +1125,11 @@
+             {
+                 if (t.getEntityBoundingBox().intersects(aabb) && (filter == null || filter.apply(t)))
+@@ -933,8 +1098,23 @@
                  }
              }
          }
++
++        /* original code
++        for (int k = i; k <= j; ++k)
++        {
++            for (T t : this.entityLists[k].getByClass(entityClass))
++            {
++                if (t.getEntityBoundingBox().intersects(aabb) && (filter == null || filter.apply(t)))
++                {
++                    listToFill.add(t);
++                }
++            }
++        }
 +
 +         */
      }
@@ -505,7 +492,7 @@
      public boolean needsSaving(boolean p_76601_1_)
      {
          if (p_76601_1_)
-@@ -995,8 +1190,72 @@
+@@ -995,8 +1175,72 @@
          }
      }
  
@@ -578,7 +565,7 @@
          if (this.isTerrainPopulated())
          {
              if (generator.generateStructures(this, this.x, this.z))
-@@ -1008,8 +1267,30 @@
+@@ -1008,8 +1252,30 @@
          {
              this.checkLight();
              generator.populate(this.x, this.z);
@@ -609,7 +596,7 @@
      }
  
      public BlockPos getPrecipitationHeight(BlockPos pos)
-@@ -1064,7 +1345,7 @@
+@@ -1064,7 +1330,7 @@
          {
              BlockPos blockpos = this.tileEntityPosQueue.poll();
  
@@ -618,7 +605,7 @@
              {
                  TileEntity tileentity = this.createNewTileEntity(blockpos);
                  this.world.setTileEntity(blockpos, tileentity);
-@@ -1075,7 +1356,7 @@
+@@ -1075,7 +1341,7 @@
  
      public boolean isPopulated()
      {
@@ -627,7 +614,7 @@
      }
  
      public boolean wasTicked()
-@@ -1128,6 +1409,13 @@
+@@ -1128,6 +1394,13 @@
      @SideOnly(Side.CLIENT)
      public void read(PacketBuffer buf, int availableSections, boolean groundUpContinuous)
      {
@@ -641,7 +628,7 @@
          boolean flag = this.world.provider.hasSkyLight();
  
          for (int i = 0; i < this.storageArrays.length; ++i)
-@@ -1176,10 +1464,16 @@
+@@ -1176,10 +1449,16 @@
          this.isTerrainPopulated = true;
          this.generateHeightMap();
  
@@ -658,7 +645,7 @@
      }
  
      public Biome getBiome(BlockPos pos, BiomeProvider provider)
-@@ -1190,7 +1484,12 @@
+@@ -1190,7 +1469,12 @@
  
          if (k == 255)
          {
@@ -672,7 +659,7 @@
              k = Biome.getIdForBiome(biome);
              this.blockBiomeArray[j << 4 | i] = (byte)(k & 255);
          }
-@@ -1244,13 +1543,13 @@
+@@ -1244,13 +1528,13 @@
                      BlockPos blockpos1 = blockpos.add(k, (j << 4) + i1, l);
                      boolean flag = i1 == 0 || i1 == 15 || k == 0 || k == 15 || l == 0 || l == 15;
  
@@ -688,7 +675,7 @@
                              {
                                  this.world.checkLight(blockpos2);
                              }
-@@ -1265,6 +1564,7 @@
+@@ -1265,6 +1549,7 @@
  
      public void checkLight()
      {
@@ -696,7 +683,7 @@
          this.isTerrainPopulated = true;
          this.isLightPopulated = true;
          BlockPos blockpos = new BlockPos(this.x << 4, 0, this.z << 4);
-@@ -1303,6 +1603,7 @@
+@@ -1303,6 +1588,7 @@
                  this.isLightPopulated = false;
              }
          }
@@ -704,7 +691,7 @@
      }
  
      private void setSkylightUpdated()
-@@ -1381,7 +1682,7 @@
+@@ -1381,7 +1667,7 @@
          {
              blockpos$mutableblockpos.setPos(blockpos$mutableblockpos.getX(), l, blockpos$mutableblockpos.getZ());
  
@@ -713,7 +700,7 @@
              {
                  this.world.checkLight(blockpos$mutableblockpos);
              }
-@@ -1420,6 +1721,7 @@
+@@ -1420,6 +1706,7 @@
          else
          {
              System.arraycopy(newHeightMap, 0, this.heightMap, 0, this.heightMap.length);
@@ -721,7 +708,7 @@
          }
      }
  
-@@ -1433,6 +1735,10 @@
+@@ -1433,6 +1720,10 @@
          return this.entityLists;
      }
  
@@ -732,7 +719,7 @@
      public boolean isTerrainPopulated()
      {
          return this.isTerrainPopulated;
-@@ -1489,4 +1795,55 @@
+@@ -1489,4 +1780,55 @@
          QUEUED,
          CHECK;
      }

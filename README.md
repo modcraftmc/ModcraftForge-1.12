@@ -64,6 +64,7 @@ Plugin development
 Thanks for the following project
 ------
 * [**CatServer**](https://github.com/Luohuayu/CatServer) - Partial async code.
+* [**Magma**](https://github.com/magmafoundation/Magma) - TPS graph.
 * [**Bukkit**](https://hub.spigotmc.org/stash/scm/spigot/bukkit.git) - plugin support.
 * [**Paper**](https://github.com/PaperMC/Paper.git) - performance optimizations.
 * [**CraftBukkit**](https://hub.spigotmc.org/stash/scm/spigot/craftbukkit.git) - plugin support.
