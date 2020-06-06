@@ -8,12 +8,13 @@
  import com.mojang.authlib.GameProfile;
  import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
  import io.netty.channel.ChannelFuture;
-@@ -29,10 +31,14 @@
+@@ -29,10 +31,15 @@
  import net.minecraft.util.CryptManager;
  import net.minecraft.util.ITickable;
  import net.minecraft.util.text.ITextComponent;
 +import net.minecraft.util.text.TextComponentString;
  import net.minecraft.util.text.TextComponentTranslation;
++import net.minecraftforge.fml.common.FMLLog;
  import org.apache.commons.lang3.Validate;
  import org.apache.logging.log4j.LogManager;
  import org.apache.logging.log4j.Logger;
@@ -23,7 +24,7 @@
  
  public class NetHandlerLoginServer implements INetHandlerLoginServer, ITickable
  {
-@@ -42,13 +48,15 @@
+@@ -42,13 +49,15 @@
      private final byte[] verifyToken = new byte[4];
      private final MinecraftServer server;
      public final NetworkManager networkManager;
@@ -40,7 +41,7 @@
      public NetHandlerLoginServer(MinecraftServer serverIn, NetworkManager networkManagerIn)
      {
          this.server = serverIn;
-@@ -58,18 +66,22 @@
+@@ -58,28 +67,45 @@
  
      public void update()
      {
@@ -68,7 +69,11 @@
                  this.player = null;
              }
          }
-@@ -80,6 +92,19 @@
+ 
+-        if (this.connectionTimer++ == 600)
++        if (this.connectionTimer++ == 600000)
+         {
+             this.disconnect(new TextComponentTranslation("multiplayer.disconnect.slow_login", new Object[0]));
          }
      }
  
@@ -88,7 +93,7 @@
      public void disconnect(ITextComponent reason)
      {
          try
-@@ -94,22 +119,43 @@
+@@ -94,22 +120,48 @@
          }
      }
  
@@ -97,6 +102,8 @@
 +    public void initUUID()
      {
 -        if (!this.loginGameProfile.isComplete())
++
++
 +        UUID uuid;
 +        if ( networkManager.spoofedUUID != null )
          {
@@ -119,11 +126,14 @@
 +                this.loginGameProfile.getProperties().put( property.getName(), property );
 +            }
          }
++
 +    }
 +    // Spigot end
 +
 +    public void tryAcceptPlayer()
 +    {
++
++
 +        // String s = this.server.getPlayerList().allowUserToConnect(this.networkManager.getRemoteAddress(), this.loginGameProfile);
 +        // CraftBukkit start - fire PlayerLoginEvent
 +        EntityPlayerMP s = this.server.getPlayerList().allowUserToConnect(this, this.loginGameProfile, hostname);
@@ -139,7 +149,7 @@
  
              if (this.server.getNetworkCompressionThreshold() >= 0 && !this.networkManager.isLocalChannel())
              {
-@@ -127,12 +173,12 @@
+@@ -127,14 +179,15 @@
  
              if (entityplayermp != null)
              {
@@ -154,12 +164,16 @@
 +                net.minecraftforge.fml.common.network.internal.FMLNetworkHandler.fmlServerHandshake(this.server.getPlayerList(), this.networkManager, this.server.getPlayerList().createPlayerForUser(this.loginGameProfile, s));
              }
          }
++
      }
-@@ -149,23 +195,35 @@
+ 
+     public void onDisconnect(ITextComponent reason)
+@@ -149,23 +202,38 @@
  
      public void processLoginStart(CPacketLoginStart packetIn)
      {
 -        Validate.validState(this.currentLoginState == NetHandlerLoginServer.LoginState.HELLO, "Unexpected hello packet");
++
 +        Validate.validState(this.currentLoginState == LoginState.HELLO, "Unexpected hello packet");
          this.loginGameProfile = packetIn.getProfile();
  
@@ -186,16 +200,18 @@
 +            }.start();
 +            // Spigot end
          }
++
      }
  
      public void processEncryptionResponse(CPacketEncryptionResponse packetIn)
      {
 -        Validate.validState(this.currentLoginState == NetHandlerLoginServer.LoginState.KEY, "Unexpected key packet");
++
 +        Validate.validState(this.currentLoginState == LoginState.KEY, "Unexpected key packet");
          PrivateKey privatekey = this.server.getKeyPair().getPrivate();
  
          if (!Arrays.equals(this.verifyToken, packetIn.getVerifyToken(privatekey)))
-@@ -175,9 +233,9 @@
+@@ -175,9 +243,9 @@
          else
          {
              this.secretKey = packetIn.getSecretKey(privatekey);
@@ -207,7 +223,7 @@
              {
                  public void run()
                  {
-@@ -190,14 +248,18 @@
+@@ -190,14 +258,18 @@
  
                          if (NetHandlerLoginServer.this.loginGameProfile != null)
                          {
@@ -229,7 +245,7 @@
                          }
                          else
                          {
-@@ -211,13 +273,16 @@
+@@ -211,13 +283,16 @@
                          {
                              NetHandlerLoginServer.LOGGER.warn("Authentication servers are down but will let them in anyway!");
                              NetHandlerLoginServer.this.loginGameProfile = NetHandlerLoginServer.this.getOfflineProfile(gameprofile);
@@ -248,13 +264,17 @@
                      }
                  }
                  @Nullable
-@@ -230,6 +295,55 @@
+@@ -228,8 +303,60 @@
+                 }
+             }).start();
          }
++
      }
  
 +    // Spigot start
 +    public class LoginHandler {
 +        public void fireEvents() throws Exception {
++
 +            String playerName = loginGameProfile.getName();
 +            java.net.InetAddress address = ((java.net.InetSocketAddress) networkManager.getRemoteAddress()).getAddress();
 +            java.util.UUID uniqueId = loginGameProfile.getId();
@@ -297,6 +317,7 @@
 +            // CraftBukkit end
 +            NetHandlerLoginServer.LOGGER.info("UUID of player {} is {}", NetHandlerLoginServer.this.loginGameProfile.getName(), NetHandlerLoginServer.this.loginGameProfile.getId());
 +            NetHandlerLoginServer.this.currentLoginState = NetHandlerLoginServer.LoginState.READY_TO_ACCEPT;
++
 +        }
 +    }
 +    // Spigot end

@@ -1,6 +1,14 @@
 --- ../src-base/minecraft/net/minecraft/client/multiplayer/PlayerControllerMP.java
 +++ ../src-work/minecraft/net/minecraft/client/multiplayer/PlayerControllerMP.java
-@@ -126,10 +126,16 @@
+@@ -44,6 +44,7 @@
+ import net.minecraft.util.math.Vec3d;
+ import net.minecraft.world.GameType;
+ import net.minecraft.world.World;
++import net.minecraftforge.fml.common.FMLLog;
+ import net.minecraftforge.fml.relauncher.Side;
+ import net.minecraftforge.fml.relauncher.SideOnly;
+ 
+@@ -126,10 +127,16 @@
              }
          }
  
@@ -18,7 +26,7 @@
          else
          {
              World world = this.mc.world;
-@@ -147,19 +153,13 @@
+@@ -147,19 +154,13 @@
              else
              {
                  world.playEvent(2001, pos, Block.getStateId(iblockstate));
@@ -39,7 +47,7 @@
  
                      if (!itemstack1.isEmpty())
                      {
-@@ -167,11 +167,18 @@
+@@ -167,11 +168,18 @@
  
                          if (itemstack1.isEmpty())
                          {
@@ -58,7 +66,7 @@
                  return flag;
              }
          }
-@@ -212,6 +219,7 @@
+@@ -212,6 +220,7 @@
              {
                  this.mc.getTutorial().onHitBlock(this.mc.world, loc, this.mc.world.getBlockState(loc), 1.0F);
                  this.connection.sendPacket(new CPacketPlayerDigging(CPacketPlayerDigging.Action.START_DESTROY_BLOCK, loc, face));
@@ -66,7 +74,7 @@
                  clickBlockCreative(this.mc, this, loc, face);
                  this.blockHitDelay = 5;
              }
-@@ -221,6 +229,7 @@
+@@ -221,6 +230,7 @@
                  {
                      this.connection.sendPacket(new CPacketPlayerDigging(CPacketPlayerDigging.Action.ABORT_DESTROY_BLOCK, this.currentBlock, face));
                  }
@@ -74,7 +82,7 @@
  
                  IBlockState iblockstate = this.mc.world.getBlockState(loc);
                  this.mc.getTutorial().onHitBlock(this.mc.world, loc, iblockstate, 0.0F);
-@@ -229,9 +238,11 @@
+@@ -229,9 +239,11 @@
  
                  if (flag && this.curBlockDamageMP == 0.0F)
                  {
@@ -86,7 +94,7 @@
                  if (flag && iblockstate.getPlayerRelativeBlockHardness(this.mc.player, this.mc.player.world, loc) >= 1.0F)
                  {
                      this.onPlayerDestroyBlock(loc);
-@@ -297,7 +308,7 @@
+@@ -297,7 +309,7 @@
  
                  if (this.stepSoundTickCounter % 4.0F == 0.0F)
                  {
@@ -95,7 +103,7 @@
                      this.mc.getSoundHandler().playSound(new PositionedSoundRecord(soundtype.getHitSound(), SoundCategory.NEUTRAL, (soundtype.getVolume() + 1.0F) / 8.0F, soundtype.getPitch() * 0.5F, posBlock));
                  }
  
-@@ -326,7 +337,8 @@
+@@ -326,7 +338,8 @@
  
      public float getBlockReachDistance()
      {
@@ -105,7 +113,7 @@
      }
  
      public void updateController()
-@@ -350,7 +362,7 @@
+@@ -350,7 +363,7 @@
  
          if (!this.currentItemHittingBlock.isEmpty() && !itemstack.isEmpty())
          {
@@ -114,7 +122,7 @@
          }
  
          return pos.equals(this.currentBlock) && flag;
-@@ -382,13 +394,34 @@
+@@ -382,13 +395,34 @@
          }
          else
          {
@@ -151,7 +159,7 @@
                  }
  
                  if (!flag && itemstack.getItem() instanceof ItemBlock)
-@@ -404,7 +437,7 @@
+@@ -404,7 +438,7 @@
  
              this.connection.sendPacket(new CPacketPlayerTryUseItemOnBlock(pos, direction, hand, f, f1, f2));
  
@@ -160,7 +168,7 @@
              {
                  if (itemstack.isEmpty())
                  {
-@@ -430,14 +463,20 @@
+@@ -430,14 +464,20 @@
                      {
                          int i = itemstack.getMetadata();
                          int j = itemstack.getCount();
@@ -182,7 +190,7 @@
                      }
                  }
              }
-@@ -466,6 +505,8 @@
+@@ -466,6 +506,8 @@
              }
              else
              {
@@ -191,7 +199,7 @@
                  int i = itemstack.getCount();
                  ActionResult<ItemStack> actionresult = itemstack.useItemRightClick(worldIn, player, hand);
                  ItemStack itemstack1 = actionresult.getResult();
-@@ -473,6 +514,10 @@
+@@ -473,6 +515,10 @@
                  if (itemstack1 != itemstack || itemstack1.getCount() != i)
                  {
                      player.setHeldItem(hand, itemstack1);
@@ -202,7 +210,7 @@
                  }
  
                  return actionresult.getType();
-@@ -509,6 +554,9 @@
+@@ -509,6 +555,9 @@
          this.syncCurrentPlayItem();
          Vec3d vec3d = new Vec3d(ray.hitVec.x - target.posX, ray.hitVec.y - target.posY, ray.hitVec.z - target.posZ);
          this.connection.sendPacket(new CPacketUseEntity(target, hand, vec3d));

@@ -12,7 +12,7 @@
  
  public abstract class MapGenStructure extends MapGenBase
  {
-+    private final Timing timing = MinecraftTimings.getStructureTiming(this); // Paper
++    private Timing timing = MinecraftTimings.getStructureTiming(this); // Paper
      private MapGenStructureData structureData;
      protected Long2ObjectMap<StructureStart> structureMap = new Long2ObjectOpenHashMap<StructureStart>(1024);
  

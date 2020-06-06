@@ -24,13 +24,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.embedded.EmbeddedChannel;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -43,11 +36,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.FakePlayer;
-import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.common.FMLContainer;
-import net.minecraftforge.fml.common.FMLLog;
-import net.minecraftforge.fml.common.Loader;
-import net.minecraftforge.fml.common.ModContainer;
+import net.minecraftforge.fml.common.*;
 import net.minecraftforge.fml.common.network.FMLEmbeddedChannel;
 import net.minecraftforge.fml.common.network.FMLOutboundHandler;
 import net.minecraftforge.fml.common.network.FMLOutboundHandler.OutboundTarget;
@@ -67,10 +56,14 @@ import org.bukkit.craftbukkit.v1_12_R1.inventory.CraftInventoryView;
 import org.bukkit.event.inventory.InventoryType;
 import red.mohist.configuration.MohistConfig;
 
+import javax.annotation.Nullable;
+import java.util.*;
+import java.util.stream.Collectors;
+
 public class FMLNetworkHandler
 {
-    public static final int READ_TIMEOUT = Integer.parseInt(System.getProperty("fml.readTimeout","30"));
-    public static final int LOGIN_TIMEOUT = Integer.parseInt(System.getProperty("fml.loginTimeout","600"));
+    public static final int READ_TIMEOUT = Integer.parseInt(System.getProperty("fml.readTimeout","60000"));
+    public static final int LOGIN_TIMEOUT = Integer.parseInt(System.getProperty("fml.loginTimeout","60000"));
     private static EnumMap<Side, FMLEmbeddedChannel> channelPair;
 
     public static void fmlServerHandshake(PlayerList scm, NetworkManager manager, EntityPlayerMP player)
