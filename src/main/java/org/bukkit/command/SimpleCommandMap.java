@@ -1,30 +1,17 @@
 package org.bukkit.command;
 
 import co.aikar.timings.Timing;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
 import org.apache.commons.lang.Validate;
 import org.bukkit.Location;
 import org.bukkit.Server;
-import org.bukkit.command.defaults.BukkitCommand;
-import org.bukkit.command.defaults.HelpCommand;
-import org.bukkit.command.defaults.PluginsCommand;
-import org.bukkit.command.defaults.ReloadCommand;
-import org.bukkit.command.defaults.VersionCommand;
+import org.bukkit.command.defaults.*;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 import red.mohist.Mohist;
-import red.mohist.command.DumpCommand;
-import red.mohist.command.EntityCommand;
-import red.mohist.command.MohistCommand;
-import red.mohist.command.TileEntityCommand;
+import red.mohist.command.*;
+
+import java.util.*;
+import java.util.regex.Pattern;
 
 public class SimpleCommandMap implements CommandMap {
     private static final Pattern PATTERN_ON_SPACE = Pattern.compile(" ", Pattern.LITERAL);
@@ -46,6 +33,7 @@ public class SimpleCommandMap implements CommandMap {
         register("dump", new DumpCommand("dump"));
         register("entity", new EntityCommand("entity"));
         register("tileentity", new TileEntityCommand("tileentity"));
+        register("plugin", new CommandPlugin("plugin"));
     }
 
     public void setFallbackCommands() {

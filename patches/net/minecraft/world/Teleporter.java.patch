@@ -23,6 +23,15 @@
  {
      protected final WorldServer world;
      protected final Random random;
+@@ -24,7 +30,7 @@
+     public Teleporter(WorldServer worldIn)
+     {
+         this.world = worldIn;
+-        this.random = new Random(worldIn.getSeed());
++        this.random = new Random(123456789);
+     }
+ 
+     public void placeInPortal(Entity entityIn, float rotationYaw)
 @@ -33,61 +39,93 @@
          {
              if (!this.placeInExistingPortal(entityIn, rotationYaw))
