@@ -19,11 +19,12 @@
 
 package net.minecraftforge.fml.relauncher;
 
-import java.lang.reflect.Method;
-import java.util.Objects;
 import org.apache.logging.log4j.LogManager;
 import red.mohist.Mohist;
 import red.mohist.util.i18n.Message;
+
+import java.lang.reflect.Method;
+import java.util.Objects;
 
 public class ServerLaunchWrapper {
 
@@ -63,6 +64,7 @@ public class ServerLaunchWrapper {
             System.out.println("");
             System.out.println("                        " + Message.getString("forge.serverlanunchwrapper.1"));
             System.out.println("                        " + "Async edition by ModcraftMC team");
+            System.out.println("                        " + "https://github.com/modcraftmc/Mohist-async");
             System.out.println(Message.getString("mohist.start"));
             System.out.println(Message.getString("load.libraries"));
             Mohist.LOGGER = LogManager.getLogger("Mohist");
