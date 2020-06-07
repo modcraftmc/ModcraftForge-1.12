@@ -106,7 +106,7 @@
  
                  if (!networkmanager.hasNoChannel())
                  {
-@@ -184,36 +202,31 @@
+@@ -184,36 +202,30 @@
                              {
                                  CrashReport crashreport = CrashReport.makeCrashReport(exception, "Ticking memory connection");
                                  CrashReportCategory crashreportcategory = crashreport.makeCategory("Ticking connection");
@@ -140,7 +140,6 @@
 +                        if (networkmanager.preparing) continue;
 +                        // Spigot End
                          iterator.remove();
-+                        FMLLog.warning("ici 2");
                          networkmanager.checkDisconnected();
                      }
                  }

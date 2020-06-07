@@ -1,5 +1,14 @@
 --- ../src-base/minecraft/net/minecraft/util/text/TextComponentBase.java
 +++ ../src-work/minecraft/net/minecraft/util/text/TextComponentBase.java
+@@ -12,7 +12,7 @@
+ public abstract class TextComponentBase implements ITextComponent
+ {
+     protected List<ITextComponent> siblings = Lists.<ITextComponent>newArrayList();
+-    private Style style;
++    private Style style = new Style();
+ 
+     public ITextComponent appendSibling(ITextComponent component)
+     {
 @@ -75,7 +75,6 @@
          return stringbuilder.toString();
      }
