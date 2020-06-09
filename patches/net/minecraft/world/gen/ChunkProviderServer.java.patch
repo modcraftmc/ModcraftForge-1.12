@@ -183,7 +183,7 @@
                  Iterator<Long> iterator = this.droppedChunksSet.iterator();
  
                  for (int i = 0; i < 100 && iterator.hasNext(); iterator.remove())
-@@ -233,21 +293,62 @@
+@@ -233,21 +293,59 @@
  
                      if (chunk != null && chunk.unloadQueued)
                      {
@@ -211,8 +211,6 @@
 +    // CraftBukkit start
 +    public boolean unloadChunk(Chunk chunk, boolean save) {
 +
-+
-+        FMLLog.warning("chunk unload event trigger");
 +        ChunkUnloadEvent event = new ChunkUnloadEvent(chunk.bukkitChunk, save);
 +        this.world.getServer().getPluginManager().callEvent(event);
 +        if (event.isCancelled()) {
@@ -242,7 +240,6 @@
 +        this.saveChunkData(chunk);
 +        this.saveChunkExtraData(chunk);
 +        this.id2ChunkMap.remove(chunk.chunkKey);
-+        FMLLog.warning("chunk unload event sucessfull");
 +        return true;
 +    }
 +    // CraftBukkit end

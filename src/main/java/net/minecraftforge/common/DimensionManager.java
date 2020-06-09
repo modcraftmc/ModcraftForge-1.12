@@ -23,36 +23,11 @@ import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MapMaker;
 import com.google.common.collect.Multiset;
-import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
-import it.unimi.dsi.fastutil.ints.IntIterator;
-import it.unimi.dsi.fastutil.ints.IntLinkedOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntRBTreeSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
-import it.unimi.dsi.fastutil.ints.IntSets;
-import it.unimi.dsi.fastutil.ints.IntSortedSet;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Hashtable;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
-import javax.annotation.Nullable;
+import it.unimi.dsi.fastutil.ints.*;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.dedicated.DedicatedServer;
-import net.minecraft.world.DimensionType;
-import net.minecraft.world.ServerWorldEventHandler;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldProvider;
-import net.minecraft.world.WorldServer;
-import net.minecraft.world.WorldServerMulti;
-import net.minecraft.world.WorldSettings;
+import net.minecraft.world.*;
 import net.minecraft.world.chunk.storage.AnvilSaveHandler;
 import net.minecraft.world.storage.ISaveHandler;
 import net.minecraft.world.storage.WorldInfo;
@@ -65,6 +40,11 @@ import red.mohist.forge.ForgeInjectBukkit;
 import red.mohist.forge.ModCompatibleFixUtils;
 import red.mohist.util.NumberUtils;
 import red.mohist.util.i18n.Message;
+
+import javax.annotation.Nullable;
+import java.io.File;
+import java.util.*;
+import java.util.concurrent.ConcurrentMap;
 
 public class DimensionManager
 {
@@ -288,6 +268,7 @@ public class DimensionManager
         }
         catch (Exception e)
         {
+            e.printStackTrace();
             FMLLog.log.error("Cannot Hotload Dim: {}", dim);
             return; // If a provider hasn't been registered then we can't hotload the dim
         }

@@ -158,7 +158,7 @@
              }
  
              this.setCanSpawnAnimals(this.settings.getBooleanProperty("spawn-animals", true));
-@@ -177,10 +224,24 @@
+@@ -177,10 +224,25 @@
                  this.setServerPort(this.settings.getIntProperty("server-port", 25565));
              }
  
@@ -180,11 +180,12 @@
  
 +            TPSTracker tpsTracker = new TPSTracker();
 +            tpsTracker.trackTPS();
++
 +		if(!SpigotConfig.lateBind) {
              try
              {
                  this.getNetworkSystem().addLanEndpoint(inetaddress, this.getServerPort());
-@@ -192,15 +253,7 @@
+@@ -192,15 +254,7 @@
                  LOGGER.warn("Perhaps a server is already running on that port?");
                  return false;
              }
@@ -201,7 +202,7 @@
              if (this.convertFiles())
              {
                  this.getPlayerProfileCache().save();
-@@ -212,7 +265,8 @@
+@@ -212,7 +266,8 @@
              }
              else
              {
@@ -211,7 +212,7 @@
                  long j = System.nanoTime();
  
                  if (this.getFolderName() == null)
-@@ -260,12 +314,21 @@
+@@ -260,12 +315,21 @@
                  TileEntitySkull.setProfileCache(this.getPlayerProfileCache());
                  TileEntitySkull.setSessionService(this.getMinecraftSessionService());
                  PlayerProfileCache.setOnlineMode(this.isServerInOnlineMode());
@@ -234,7 +235,7 @@
                  if (this.settings.hasProperty("announce-player-achievements"))
                  {
                      this.worlds[0].getGameRules().setOrCreateGameRule("announceAdvancements", this.settings.getBooleanProperty("announce-player-achievements", true) ? "true" : "false");
-@@ -285,18 +348,35 @@
+@@ -285,18 +349,35 @@
                      LOGGER.info("Starting remote control listener");
                      this.rconThread = new RConThreadMain(this);
                      this.rconThread.startThread();
@@ -277,7 +278,7 @@
              }
          }
      }
-@@ -419,11 +499,20 @@
+@@ -419,11 +500,20 @@
  
      public void executePendingCommands()
      {
@@ -302,7 +303,7 @@
      }
  
      public boolean isDedicatedServer()
-@@ -515,7 +604,7 @@
+@@ -515,7 +605,7 @@
  
      public boolean isBlockProtected(World worldIn, BlockPos pos, EntityPlayer playerIn)
      {
@@ -311,7 +312,7 @@
          {
              return false;
          }
-@@ -584,6 +673,9 @@
+@@ -584,6 +674,9 @@
          return this.settings.getIntProperty("network-compression-threshold", super.getNetworkCompressionThreshold());
      }
  
@@ -321,7 +322,7 @@
      protected boolean convertFiles() throws IOException
      {
          boolean flag = false;
-@@ -673,13 +765,79 @@
+@@ -673,13 +766,79 @@
  
      public String getPlugins()
      {

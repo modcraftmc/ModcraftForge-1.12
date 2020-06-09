@@ -23,7 +23,7 @@ public class PluginCommand extends Command {
         super(name);
         this.description = "Load or unload plugin";
         this.usageMessage = "/plugin <load|unload> <name>";
-        setPermission("catserver.command.plugin");
+        setPermission("mohist.command.plugin");
     }
 
     @Override
