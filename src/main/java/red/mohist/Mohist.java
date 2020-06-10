@@ -1,16 +1,16 @@
 package red.mohist;
 
-import java.io.File;
-import java.util.Scanner;
 import org.apache.logging.log4j.Logger;
 import red.mohist.bukkit.AutoDeletePlugins;
 import red.mohist.bukkit.nms.remappers.MappingFix;
 import red.mohist.configuration.MohistConfigUtil;
-import red.mohist.down.DownloadLibraries;
 import red.mohist.down.UpdateUtils;
 import red.mohist.forge.AutoDeleteMods;
 import red.mohist.util.EulaUtil;
 import red.mohist.util.i18n.Message;
+
+import java.io.File;
+import java.util.Scanner;
 
 public class Mohist {
 
@@ -30,7 +30,7 @@ public class Mohist {
         if(System.getProperty("log4j.configurationFile") == null)
             System.setProperty("log4j.configurationFile", "log4j2_mohist.xml");
         MohistConfigUtil.copyMohistConfig();
-        if(UpdateUtils.isCheckLibs()) DownloadLibraries.run();
+        //if(UpdateUtils.isCheckLibs()) DownloadLibraries.run();
         MappingFix.init();
         if(!EulaUtil.hasAcceptedEULA()) {
             System.out.println(Message.getString("eula"));

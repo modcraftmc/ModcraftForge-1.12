@@ -758,7 +758,7 @@
 +        executePendingCommands();
 +        for (WorldServer world : worldServerList) {
 +
-+            world.addScheduledTask(world::asyncTickWithEvents);
++            world.addWorldTask(world::asyncTickWithEvents);
 +        }
 +
 +        for (WorldServer worldServer : worldServerList) {
