@@ -20,20 +20,18 @@
  import java.awt.image.BufferedImage;
  import java.io.File;
  import java.io.IOException;
-@@ -23,19 +25,24 @@
+@@ -23,19 +25,16 @@
  import java.nio.charset.StandardCharsets;
  import java.security.KeyPair;
  import java.text.SimpleDateFormat;
-+import java.util.ArrayList;
- import java.util.Arrays;
- import java.util.Collections;
-+import java.util.Comparator;
- import java.util.Date;
+-import java.util.Arrays;
+-import java.util.Collections;
+-import java.util.Date;
++import java.util.*;
  import java.util.List;
- import java.util.Queue;
- import java.util.Random;
-+import java.util.Set;
- import java.util.UUID;
+-import java.util.Queue;
+-import java.util.Random;
+-import java.util.UUID;
  import java.util.concurrent.Callable;
  import java.util.concurrent.Executors;
  import java.util.concurrent.FutureTask;
@@ -46,7 +44,7 @@
  import net.minecraft.advancements.AdvancementManager;
  import net.minecraft.advancements.FunctionManager;
  import net.minecraft.command.CommandBase;
-@@ -55,6 +62,8 @@
+@@ -55,6 +54,8 @@
  import net.minecraft.profiler.Profiler;
  import net.minecraft.profiler.Snooper;
  import net.minecraft.server.dedicated.DedicatedServer;
@@ -55,7 +53,7 @@
  import net.minecraft.server.management.PlayerList;
  import net.minecraft.server.management.PlayerProfileCache;
  import net.minecraft.util.IProgressUpdate;
-@@ -78,34 +87,49 @@
+@@ -78,34 +79,49 @@
  import net.minecraft.world.WorldServerMulti;
  import net.minecraft.world.WorldSettings;
  import net.minecraft.world.WorldType;
@@ -112,7 +110,7 @@
      private PlayerList playerList;
      private boolean serverRunning = true;
      private boolean serverStopped;
-@@ -123,11 +147,11 @@
+@@ -123,11 +139,11 @@
      private int buildLimit;
      private int maxPlayerIdleMinutes;
      public final long[] tickTimeArray = new long[100];
@@ -126,7 +124,7 @@
      private String worldName;
      private boolean isDemo;
      private boolean enableBonusChest;
-@@ -143,26 +167,86 @@
+@@ -143,26 +159,88 @@
      private final GameProfileRepository profileRepo;
      private final PlayerProfileCache profileCache;
      private long nanoTimeSinceStatusRefresh;
@@ -165,6 +163,8 @@
 +    private static long lastTickNanos = System.nanoTime();
 +    private static long realTimeTicks = 1;
 +    // Mohist end
++
++    private final ArrayDeque<Runnable> tasks = new ArrayDeque<>();
 +
 +    protected static final java.lang.Object worldWait = new java.lang.Object();
 +
@@ -218,7 +218,7 @@
      public ServerCommandManager createCommandManager()
      {
          return new ServerCommandManager(this);
-@@ -220,83 +304,92 @@
+@@ -220,83 +298,92 @@
  
      public void loadAllWorlds(String saveName, String worldNameIn, long seed, WorldType type, String generatorOptions)
      {
@@ -365,7 +365,7 @@
      }
  
      public void initialWorldChunkLoad()
-@@ -308,9 +401,12 @@
+@@ -308,9 +395,12 @@
          int i1 = 0;
          this.setUserMessage("menu.generatingTerrain");
          int j1 = 0;
@@ -380,7 +380,7 @@
          long k1 = getCurrentTimeMillis();
  
          for (int l1 = -192; l1 <= 192 && this.isServerRunning(); l1 += 16)
-@@ -321,7 +417,7 @@
+@@ -321,7 +411,7 @@
  
                  if (j2 - k1 > 1000L)
                  {
@@ -389,7 +389,7 @@
                      k1 = j2;
                  }
  
-@@ -379,13 +475,13 @@
+@@ -379,13 +469,13 @@
  
      public void saveAllWorlds(boolean isSilent)
      {
@@ -405,7 +405,7 @@
                  }
  
                  try
-@@ -400,10 +496,23 @@
+@@ -400,10 +490,23 @@
          }
      }
  
@@ -432,7 +432,7 @@
          if (this.getNetworkSystem() != null)
          {
              this.getNetworkSystem().terminateEndpoints();
-@@ -411,14 +520,15 @@
+@@ -411,14 +514,15 @@
  
          if (this.playerList != null)
          {
@@ -450,7 +450,7 @@
  
              for (WorldServer worldserver : this.worlds)
              {
-@@ -428,21 +538,40 @@
+@@ -428,21 +532,40 @@
                  }
              }
  
@@ -493,7 +493,7 @@
      }
  
      public boolean isServerRunning()
-@@ -455,65 +584,113 @@
+@@ -455,65 +578,86 @@
          this.serverRunning = false;
      }
  
@@ -516,70 +516,27 @@
                  this.statusResponse.setServerDescription(new TextComponentString(this.motd));
                  this.statusResponse.setVersion(new ServerStatusResponse.Version("1.12.2", 340));
                  this.applyServerIconToResponse(this.statusResponse);
-+                //new Thread(this::mainLoop).start();
  
--                while (this.serverRunning)
--                {
++
++                // Spigot start
++                Arrays.fill( recentTps, 20 );
++                long lastTick = System.nanoTime(), catchupTime = 0, curTime, wait, tickSection = lastTick;
++
++                while (this.serverIsRunning) {
++                    this.tick(System.nanoTime());
++                }
++
++                /*
+                 while (this.serverRunning)
+                 {
 -                    long k = getCurrentTimeMillis();
 -                    long j = k - this.currentTime;
- 
+-
 -                    if (j > 2000L && this.currentTime - this.timeOfLastWarning >= 15000L)
 -                    {
 -                        LOGGER.warn("Can't keep up! Did the system time change, or is the server overloaded? Running {}ms behind, skipping {} tick(s)", Long.valueOf(j), Long.valueOf(j / 50L));
 -                        j = 2000L;
 -                        this.timeOfLastWarning = this.currentTime;
-+                //MAINLOOP
-+                /*
-+                long TARGET_TPS = 20;
-+                long TARGET_TICK_TIME = 1000000000 / TARGET_TPS;
-+                long startTime = System.nanoTime();
-+                float tickTime = 1;
-+                this.serverIsRunning = true;
-+                while (this.serverRunning) {
-+                    ++tickCounter;
-+                    try {
-+                        this.tick(startTime);
-+                    } catch (Exception e) {
-+                        Log.error("Exception in main tick loop", e);
-                     }
-+                    long endTime = System.nanoTime();
-+                    this.tickTimeArray[this.tickCounter % 100] = endTime - startTime;
- 
--                    if (j < 0L)
--                    {
--                        LOGGER.warn("Time ran backwards! Did the system time change?");
--                        j = 0L;
-+                    currentTime = endTime;
-+                    tickTime = tickTime * 0.98f + ((endTime - startTime) * 0.02f);
-+
-+                    long wait = (TARGET_TICK_TIME - (endTime - startTime)) / 1000000;
-+
-+                    if (wait > 0 && TARGET_TICK_TIME * TARGET_TPS / tickTime > TARGET_TPS) {
-+                        try {
-+                            Thread.sleep(wait);
-+                        } catch (InterruptedException e) {
-+                            e.printStackTrace();
-+                        }
-+                        startTime = System.currentTimeMillis();
-+                    } else {
-+                        startTime = endTime;
-                     }
-+                }
- 
--                    i += j;
--                    this.currentTime = k;
-+                 */
- 
--                    if (this.worlds[0].areAllPlayersAsleep())
--                    {
--                        this.tick();
--                        i = 0L;
-+
-+                // Spigot start
-+                Arrays.fill( recentTps, 20 );
-+                long lastTick = System.nanoTime(), catchupTime = 0, curTime, wait, tickSection = lastTick;
-+                while (this.serverRunning)
-+                {
 +                    curTime = System.nanoTime();
 +                    wait = TICK_TIME - (curTime - lastTick) - catchupTime;
 +                    if (wait > 0) {
@@ -589,15 +546,12 @@
 +                    } else {
 +                        catchupTime = Math.min(1000000000, Math.abs(wait));
                      }
--                    else
-+
+ 
+-                    if (j < 0L)
 +                    if ( MinecraftServer.currentTick++ % SAMPLE_INTERVAL == 0 )
                      {
--                        while (i > 50L)
--                        {
--                            i -= 50L;
--                            this.tick();
--                        }
+-                        LOGGER.warn("Time ran backwards! Did the system time change?");
+-                        j = 0L;
 +                        double currentTps = 1E9 / ( curTime - tickSection ) * SAMPLE_INTERVAL;
 +                        recentTps[0] = calcTps( recentTps[0], 0.92, currentTps ); // 1/exp(5sec/1min)
 +                        recentTps[1] = calcTps( recentTps[1], 0.9835, currentTps ); // 1/exp(5sec/5min)
@@ -606,10 +560,31 @@
                      }
 +                    lastTick = curTime;
  
--                    Thread.sleep(Math.max(1L, 50L - i));
+-                    i += j;
+-                    this.currentTime = k;
 +                    this.tick(System.nanoTime());
+ 
+-                    if (this.worlds[0].areAllPlayersAsleep())
+-                    {
+-                        this.tick();
+-                        i = 0L;
+-                    }
+-                    else
+-                    {
+-                        while (i > 50L)
+-                        {
+-                            i -= 50L;
+-                            this.tick();
+-                        }
+-                    }
+-
+-                    Thread.sleep(Math.max(1L, 50L - i));
                      this.serverIsRunning = true;
++
++
                  }
++                
++                 */
 +                
 +                 
 +                // Spigot end
@@ -634,7 +609,7 @@
              CrashReport crashreport = null;
  
              if (throwable1 instanceof ReportedException)
-@@ -522,73 +699,75 @@
+@@ -522,73 +666,75 @@
              }
              else
              {
@@ -733,7 +708,7 @@
      @SideOnly(Side.CLIENT)
      public boolean isWorldIconSet()
      {
-@@ -615,9 +794,123 @@
+@@ -615,9 +761,147 @@
      {
      }
  
@@ -757,16 +732,19 @@
 +
 +        executePendingCommands();
 +
-+
 +        worldServerList.forEach((world) -> world.addScheduledTask(world::asyncTickWithEvents));
 +
 +        for (WorldServer worldServer : worldServerList) {
 +            worldServer.runTasks();
 +        }
 +
-+        for (ITickable tickable : tickables) {
-+            tickable.update();
-+        }
++        this.addTileEntitiesTask(() -> {
++            for (ITickable tickable : tickables) {
++                tickable.update();
++            }
++        });
++
++        this.runTasks();
 +
 +
 +        net.minecraftforge.common.chunkio.ChunkIOExecutor.tick();
@@ -823,6 +801,27 @@
 +
 +    }
 +
++    public <V> ListenableFuture<V> callTileEntitiesThread(Callable<V> callable) {
++
++        ListenableFutureTask<V> task = ListenableFutureTask.create(callable);
++        tasks.add(task);
++        return task;
++
++
++    }
++
++
++    public ListenableFuture<Object> addTileEntitiesTask(Runnable runnableToSchedule) {
++        return this.<Object> callTileEntitiesThread(Executors.callable(runnableToSchedule));
++    }
++
++    public void runTasks() {
++        ArrayDeque<Runnable> tasks = this.tasks;
++        Runnable task;
++        while ((task = tasks.poll()) != null)
++            task.run();
++    }
++
 +    public void executePendingCommands() {
 +        MinecraftTimings.serverCommandTimer.startTiming(); // Spigot
 +        PendingCommand pendingcommand;
@@ -859,7 +858,7 @@
          ++this.tickCounter;
  
          if (this.startProfiling)
-@@ -634,7 +927,7 @@
+@@ -634,7 +918,7 @@
          {
              this.nanoTimeSinceStatusRefresh = i;
              this.statusResponse.setPlayers(new ServerStatusResponse.Players(this.getMaxPlayers(), this.getCurrentPlayerCount()));
@@ -868,7 +867,7 @@
              int j = MathHelper.getInt(this.random, 0, this.getCurrentPlayerCount() - agameprofile.length);
  
              for (int k = 0; k < agameprofile.length; ++k)
-@@ -644,9 +937,9 @@
+@@ -644,9 +928,9 @@
  
              Collections.shuffle(Arrays.asList(agameprofile));
              this.statusResponse.getPlayers().setPlayers(agameprofile);
@@ -880,7 +879,7 @@
          {
              this.profiler.startSection("save");
              this.playerList.saveAllPlayerData();
-@@ -654,6 +947,7 @@
+@@ -654,6 +938,7 @@
              this.profiler.endSection();
          }
  
@@ -888,7 +887,7 @@
          this.profiler.startSection("tallying");
          this.tickTimeArray[this.tickCounter % 100] = System.nanoTime() - i;
          this.profiler.endSection();
-@@ -671,89 +965,132 @@
+@@ -671,89 +956,132 @@
  
          this.profiler.endSection();
          this.profiler.endSection();
@@ -1070,7 +1069,7 @@
      }
  
      public boolean getAllowNether()
-@@ -763,8 +1100,11 @@
+@@ -763,8 +1091,11 @@
  
      public void startServerThread()
      {
@@ -1083,7 +1082,7 @@
      }
  
      public File getFile(String fileName)
-@@ -779,16 +1119,25 @@
+@@ -779,16 +1110,25 @@
  
      public WorldServer getWorld(int dimension)
      {
@@ -1114,7 +1113,7 @@
      public String getMinecraftVersion()
      {
          return "1.12.2";
-@@ -816,7 +1165,7 @@
+@@ -816,7 +1156,7 @@
  
      public String getServerModName()
      {
@@ -1123,7 +1122,7 @@
      }
  
      public CrashReport addServerInfoToCrashReport(CrashReport report)
-@@ -845,7 +1194,7 @@
+@@ -845,7 +1185,7 @@
  
      public List<String> getTabCompletions(ICommandSender sender, String input, @Nullable BlockPos pos, boolean hasTargetBlock)
      {
@@ -1132,7 +1131,7 @@
          boolean flag = input.startsWith("/");
  
          if (flag)
-@@ -862,11 +1211,9 @@
+@@ -862,11 +1202,9 @@
              {
                  if (CommandBase.doesStringStartWith(s2, s1))
                  {
@@ -1145,7 +1144,7 @@
          }
          else
          {
-@@ -879,27 +1226,29 @@
+@@ -879,27 +1217,29 @@
                  {
                      if (flag1 && !hasTargetBlock)
                      {
@@ -1181,7 +1180,7 @@
      }
  
      public void sendMessage(ITextComponent component)
-@@ -912,6 +1261,10 @@
+@@ -912,6 +1252,10 @@
          return true;
      }
  
@@ -1192,7 +1191,7 @@
      public ICommandManager getCommandManager()
      {
          return this.commandManager;
-@@ -947,13 +1300,11 @@
+@@ -947,13 +1291,11 @@
          this.folderName = name;
      }
  
@@ -1206,7 +1205,7 @@
      public String getWorldName()
      {
          return this.worldName;
-@@ -966,7 +1317,7 @@
+@@ -966,7 +1308,7 @@
  
      public void setDifficultyForAllWorlds(EnumDifficulty difficulty)
      {
@@ -1215,7 +1214,7 @@
          {
              if (worldserver1 != null)
              {
-@@ -1048,9 +1399,9 @@
+@@ -1048,9 +1390,9 @@
          playerSnooper.addClientStat("avg_tick_ms", Integer.valueOf((int)(MathHelper.average(this.tickTimeArray) * 1.0E-6D)));
          int l = 0;
  
@@ -1227,7 +1226,7 @@
              {
                  if (worldserver1 != null)
                  {
-@@ -1088,7 +1439,8 @@
+@@ -1088,7 +1430,8 @@
  
      public boolean isServerInOnlineMode()
      {
@@ -1237,7 +1236,7 @@
      }
  
      public void setOnlineMode(boolean online)
-@@ -1182,7 +1534,7 @@
+@@ -1182,7 +1525,7 @@
  
      public void setGameType(GameType gameMode)
      {
@@ -1246,7 +1245,7 @@
          {
              worldserver1.getWorldInfo().setGameType(gameMode);
          }
-@@ -1285,7 +1637,7 @@
+@@ -1285,7 +1628,7 @@
      @Nullable
      public Entity getEntityFromUuid(UUID uuid)
      {
@@ -1255,7 +1254,7 @@
          {
              if (worldserver1 != null)
              {
-@@ -1311,24 +1663,48 @@
+@@ -1311,24 +1654,48 @@
          return this;
      }
  
@@ -1311,7 +1310,7 @@
          }
          else
          {
-@@ -1341,14 +1717,15 @@
+@@ -1341,14 +1708,15 @@
                  return Futures.immediateFailedCheckedFuture(exception);
              }
          }
@@ -1331,7 +1330,7 @@
      public boolean isCallingFromMinecraftThread()
      {
          return Thread.currentThread() == this.serverThread;
-@@ -1409,124 +1786,41 @@
+@@ -1409,124 +1777,41 @@
      }
  
      @SideOnly(Side.SERVER)
@@ -1473,7 +1472,7 @@
          }
      }
  
-@@ -1539,7 +1833,8 @@
+@@ -1539,7 +1824,8 @@
      @SideOnly(Side.SERVER)
      public boolean isDebuggingEnabled()
      {
@@ -1483,7 +1482,7 @@
      }
  
      @SideOnly(Side.SERVER)
-@@ -1598,4 +1893,14 @@
+@@ -1598,4 +1884,14 @@
      {
          return this.serverThread;
      }

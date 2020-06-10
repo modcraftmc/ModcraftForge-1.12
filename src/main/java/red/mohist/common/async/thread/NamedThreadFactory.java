@@ -1,4 +1,4 @@
-package red.mohist.common.async;
+package red.mohist.common.async.thread;
 
 import java.util.concurrent.ThreadFactory;
 
@@ -8,7 +8,7 @@ import java.util.concurrent.ThreadFactory;
  */
 public class NamedThreadFactory implements ThreadFactory {
     private static int id = 0;
-    private String name;
+    private final String name;
 
     public NamedThreadFactory(String name) {
         this.name = name;

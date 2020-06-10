@@ -1,4 +1,6 @@
-package red.mohist.common.async;
+package red.mohist.common.async.thread;
+
+import red.mohist.common.async.Async;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,7 +19,7 @@ public class MohistThreadBox {
 
     public static final ExecutorService TCW = Executors.newSingleThreadExecutor(new NamedThreadFactory("TerminalConsoleWriter"));
 
-    public static final ExecutorService Head = Executors.newFixedThreadPool(3,  new NamedThreadFactory("Head Conversion Thread"));
+    public static final ExecutorService Head = Executors.newFixedThreadPool(3, new NamedThreadFactory("Head Conversion Thread"));
 
 
     //ASYNC EDITION
@@ -27,10 +29,13 @@ public class MohistThreadBox {
     @Async
     public static final ExecutorService MODDED_ENTITY_MOVE = Executors.newFixedThreadPool(4, new NamedThreadFactory("Modded Entity Async Thread"));
 
+    public static final ExecutorService WORLDS_TICKING = Executors.newFixedThreadPool(10, new NamedThreadFactory("World tick handler"));
+
     public static class AssignableThread extends Thread {
         public AssignableThread(Runnable run) {
             super(run);
         }
+
         public AssignableThread() {
             super();
         }
