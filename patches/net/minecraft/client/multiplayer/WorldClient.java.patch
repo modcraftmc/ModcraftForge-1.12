@@ -31,3 +31,13 @@
      {
          return allowEmpty || !this.getChunkProvider().provideChunk(x, z).isEmpty();
      }
+@@ -510,4 +512,9 @@
+     {
+         return (ChunkProviderClient)super.getChunkProvider();
+     }
++
++    @Override
++    public boolean isCallingFromMinecraftThread() {
++        return false;
++    }
+ }

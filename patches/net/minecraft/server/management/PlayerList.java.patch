@@ -1079,7 +1079,7 @@
          if (++this.playerPingIndex > 600)
          {
 -            this.sendPacketToAllPlayers(new SPacketPlayerListItem(SPacketPlayerListItem.Action.UPDATE_LATENCY, this.playerEntityList));
-+            // this.sendPacketToAllPlayers(new SPacketPlayerListItem(SPacketPlayerListItem.Action.UPDATE_LATENCY, this.playerEntityList));
++             this.sendPacketToAllPlayers(new SPacketPlayerListItem(SPacketPlayerListItem.Action.UPDATE_LATENCY, this.playerEntityList));
 +            for (int i = 0; i < this.playerEntityList.size(); ++i) {
 +                final EntityPlayerMP target = this.playerEntityList.get(i);
 +

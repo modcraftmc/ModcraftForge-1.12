@@ -4,6 +4,7 @@ import org.apache.logging.log4j.Logger;
 import red.mohist.bukkit.AutoDeletePlugins;
 import red.mohist.bukkit.nms.remappers.MappingFix;
 import red.mohist.configuration.MohistConfigUtil;
+import red.mohist.down.DownloadLibraries;
 import red.mohist.down.UpdateUtils;
 import red.mohist.forge.AutoDeleteMods;
 import red.mohist.util.EulaUtil;
@@ -30,14 +31,14 @@ public class Mohist {
         if(System.getProperty("log4j.configurationFile") == null)
             System.setProperty("log4j.configurationFile", "log4j2_mohist.xml");
         MohistConfigUtil.copyMohistConfig();
-        //if(UpdateUtils.isCheckLibs()) DownloadLibraries.run();
+        if(UpdateUtils.isCheckLibs()) DownloadLibraries.run();
         MappingFix.init();
         if(!EulaUtil.hasAcceptedEULA()) {
             System.out.println(Message.getString("eula"));
             while (!"true".equals(new Scanner(System.in).next())) ;
             EulaUtil.writeInfos();
         }
-        if(UpdateUtils.isCheckUpdate()) UpdateUtils.versionCheck();
+        //if(UpdateUtils.isCheckUpdate()) UpdateUtils.versionCheck();
         if(!MohistConfigUtil.getBoolean(new File("mohist-config", "mohist.yml"), "disable_plugins_blacklist:"))
             AutoDeletePlugins.jar();
         if(!MohistConfigUtil.getBoolean(new File("mohist-config", "mohist.yml"), "disable_mods_blacklist:"))

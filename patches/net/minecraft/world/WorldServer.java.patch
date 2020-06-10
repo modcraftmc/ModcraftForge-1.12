@@ -1195,16 +1195,18 @@
              this.sendPacketWithinDistance(entityplayermp, longDistance, xCoord, yCoord, zCoord, spacketparticles);
          }
      }
-@@ -1299,7 +1667,7 @@
- 
-     public ListenableFuture<Object> addScheduledTask(Runnable runnableToSchedule)
-     {
--        return this.mcServer.addScheduledTask(runnableToSchedule);
-+        return callFormWorldThread(Executors.callable(runnableToSchedule));
+@@ -1297,10 +1665,6 @@
+         return this.entitiesByUuid.get(uuid);
      }
  
+-    public ListenableFuture<Object> addScheduledTask(Runnable runnableToSchedule)
+-    {
+-        return this.mcServer.addScheduledTask(runnableToSchedule);
+-    }
+ 
      public boolean isCallingFromMinecraftThread()
-@@ -1323,10 +1691,15 @@
+     {
+@@ -1323,10 +1687,15 @@
          return this.functionManager;
      }
  
