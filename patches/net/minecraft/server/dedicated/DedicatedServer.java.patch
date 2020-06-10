@@ -55,7 +55,7 @@
      private static final Logger LOGGER = LogManager.getLogger();
      private static final Pattern RESOURCE_PACK_SHA1_PATTERN = Pattern.compile("^[a-fA-F0-9]{40}$");
 -    public final List<PendingCommand> pendingCommandList = Collections.<PendingCommand>synchronizedList(Lists.newArrayList());
-+    public final java.util.Queue<PendingCommand> pendingCommandList = new java.util.concurrent.ConcurrentLinkedQueue<>(); // Paper - use a proper queue
++    public static final java.util.Queue<PendingCommand> pendingCommandList = new java.util.concurrent.ConcurrentLinkedQueue<>(); // Paper - use a proper queue
      private RConThreadQuery rconQueryThread;
 -    private final RConConsoleSource rconConsoleSource = new RConConsoleSource(this);
 +    public final RConConsoleSource rconConsoleSource = new RConConsoleSource(this);
@@ -278,7 +278,23 @@
              }
          }
      }
-@@ -419,11 +500,20 @@
+@@ -384,12 +465,15 @@
+         System.exit(0);
+     }
+ 
++    /*
+     public void updateTimeLightAndEntities()
+     {
+         super.updateTimeLightAndEntities();
+         this.executePendingCommands();
+     }
+ 
++     */
++
+     public boolean getAllowNether()
+     {
+         return this.settings.getBooleanProperty("allow-nether", true);
+@@ -419,11 +503,20 @@
  
      public void executePendingCommands()
      {
@@ -303,7 +319,7 @@
      }
  
      public boolean isDedicatedServer()
-@@ -515,7 +605,7 @@
+@@ -515,7 +608,7 @@
  
      public boolean isBlockProtected(World worldIn, BlockPos pos, EntityPlayer playerIn)
      {
@@ -312,7 +328,7 @@
          {
              return false;
          }
-@@ -584,6 +674,9 @@
+@@ -584,6 +677,9 @@
          return this.settings.getIntProperty("network-compression-threshold", super.getNetworkCompressionThreshold());
      }
  
@@ -322,7 +338,7 @@
      protected boolean convertFiles() throws IOException
      {
          boolean flag = false;
-@@ -673,13 +766,79 @@
+@@ -673,13 +769,79 @@
  
      public String getPlugins()
      {
