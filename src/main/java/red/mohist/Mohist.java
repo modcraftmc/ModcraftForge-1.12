@@ -2,7 +2,7 @@ package red.mohist;
 
 import org.apache.logging.log4j.Logger;
 import red.mohist.bukkit.AutoDeletePlugins;
-import red.mohist.bukkit.nms.remappers.MappingFix;
+import red.mohist.bukkit.nms.MappingFix;
 import red.mohist.configuration.MohistConfigUtil;
 import red.mohist.down.DownloadLibraries;
 import red.mohist.down.UpdateUtils;

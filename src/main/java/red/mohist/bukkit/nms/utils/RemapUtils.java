@@ -1,4 +1,4 @@
-package red.mohist.bukkit.nms;
+package red.mohist.bukkit.nms.utils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -70,9 +70,9 @@ public class RemapUtils {
             String fName;
             String os = System.getProperty("os.name");
             if (os.toLowerCase().startsWith("win")) {
-                fName = path + "/libraries/red/mohist/mappings/nms12.red";
+                fName = path + "/libraries/red/mohist/mappings/nms.srg";
             } else {
-                fName = "/" + path + "/libraries/red/mohist/mappings/nms12.red";
+                fName = "/" + path + "/libraries/red/mohist/mappings/nms.srg";
             }
             File nms = new File(fName);
             if (!nms.exists()) {
