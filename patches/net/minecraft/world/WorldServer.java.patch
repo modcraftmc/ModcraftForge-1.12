@@ -88,7 +88,7 @@
  import net.minecraft.util.math.AxisAlignedBB;
  import net.minecraft.util.math.BlockPos;
  import net.minecraft.util.math.ChunkPos;
-@@ -77,16 +95,24 @@
+@@ -77,16 +95,25 @@
  import net.minecraft.world.storage.WorldInfo;
  import net.minecraft.world.storage.WorldSavedDataCallableSave;
  import net.minecraft.world.storage.loot.LootTableManager;
@@ -103,6 +103,7 @@
 +import org.bukkit.event.server.ServerCommandEvent;
 +import org.bukkit.event.weather.LightningStrikeEvent;
 +import red.mohist.common.RealTimeTicking;
++import red.mohist.common.async.thread.MohistThreadBox;
 +import red.mohist.configuration.*;
  
 -public class WorldServer extends World implements IThreadListener
@@ -115,7 +116,7 @@
      private final PlayerChunkMap playerChunkMap;
      private final Set<NextTickListEntry> pendingTickListEntriesHashSet = Sets.<NextTickListEntry>newHashSet();
      private final TreeSet<NextTickListEntry> pendingTickListEntriesTreeSet = new TreeSet<NextTickListEntry>();
-@@ -101,50 +127,137 @@
+@@ -101,50 +128,137 @@
      private int blockEventCacheIndex;
      private final List<NextTickListEntry> pendingTickListEntriesThisTick = Lists.<NextTickListEntry>newArrayList();
  
@@ -267,7 +268,7 @@
          this.functionManager = new FunctionManager(new File(new File(this.saveHandler.getWorldDirectory(), "data"), "functions"), this.mcServer);
          this.getWorldBorder().setCenter(this.worldInfo.getBorderCenterX(), this.worldInfo.getBorderCenterZ());
          this.getWorldBorder().setDamageAmount(this.worldInfo.getBorderDamagePerBlock());
-@@ -161,9 +274,146 @@
+@@ -161,9 +275,146 @@
              this.getWorldBorder().setTransition(this.worldInfo.getBorderSize());
          }
  
@@ -414,7 +415,7 @@
      public void tick()
      {
          super.tick();
-@@ -179,8 +429,8 @@
+@@ -179,8 +430,8 @@
          {
              if (this.getGameRules().getBoolean("doDaylightCycle"))
              {
@@ -425,7 +426,7 @@
              }
  
              this.wakeAllPlayers();
-@@ -188,11 +438,17 @@
+@@ -188,11 +439,17 @@
  
          this.profiler.startSection("mobSpawner");
  
@@ -445,7 +446,7 @@
          this.profiler.endStartSection("chunkSource");
          this.chunkProvider.tick();
          int j = this.calculateSkylightSubtracted(1.0F);
-@@ -206,34 +462,57 @@
+@@ -206,34 +463,57 @@
  
          if (this.getGameRules().getBoolean("doDaylightCycle"))
          {
@@ -504,7 +505,7 @@
          return list != null && !list.isEmpty() ? list.contains(spawnListEntry) : false;
      }
  
-@@ -252,7 +531,7 @@
+@@ -252,7 +532,7 @@
                  {
                      ++i;
                  }
@@ -513,7 +514,7 @@
                  {
                      ++j;
                  }
-@@ -279,25 +558,28 @@
+@@ -279,25 +559,28 @@
  
      private void resetRainAndThunder()
      {
@@ -548,7 +549,7 @@
          }
          else
          {
-@@ -333,7 +615,7 @@
+@@ -333,7 +616,7 @@
          this.worldInfo.setSpawnZ(j);
      }
  
@@ -557,7 +558,7 @@
      {
          return this.getChunkProvider().chunkExists(x, z);
      }
-@@ -342,7 +624,7 @@
+@@ -342,7 +625,7 @@
      {
          this.profiler.startSection("playerCheckLight");
  
@@ -566,7 +567,7 @@
          {
              int i = this.rand.nextInt(this.playerEntities.size());
              EntityPlayer entityplayer = this.playerEntities.get(i);
-@@ -375,99 +657,89 @@
+@@ -375,99 +658,89 @@
              boolean flag1 = this.isThundering();
              this.profiler.startSection("pollingChunks");
  
@@ -727,7 +728,7 @@
  
              this.profiler.endSection();
          }
-@@ -525,7 +797,10 @@
+@@ -525,7 +798,10 @@
          {
              if (blockIn.requiresUpdates())
              {
@@ -739,7 +740,7 @@
                  {
                      IBlockState iblockstate = this.getBlockState(pos);
  
-@@ -561,6 +836,7 @@
+@@ -561,6 +837,7 @@
  
      public void scheduleBlockUpdate(BlockPos pos, Block blockIn, int delay, int priority)
      {
@@ -747,7 +748,7 @@
          NextTickListEntry nextticklistentry = new NextTickListEntry(pos, blockIn);
          nextticklistentry.setPriority(priority);
          Material material = blockIn.getDefaultState().getMaterial();
-@@ -579,9 +855,9 @@
+@@ -579,9 +856,9 @@
  
      public void updateEntities()
      {
@@ -759,7 +760,7 @@
              {
                  return;
              }
-@@ -593,6 +869,7 @@
+@@ -593,6 +870,7 @@
  
          this.provider.onWorldUpdateEntities();
          super.updateEntities();
@@ -767,7 +768,7 @@
      }
  
      protected void tickPlayers()
-@@ -668,19 +945,21 @@
+@@ -668,19 +946,21 @@
          {
              int i = this.pendingTickListEntriesTreeSet.size();
  
@@ -797,7 +798,7 @@
                  for (int j = 0; j < i; ++j)
                  {
                      NextTickListEntry nextticklistentry = this.pendingTickListEntriesTreeSet.first();
-@@ -694,21 +973,26 @@
+@@ -694,21 +974,26 @@
                      this.pendingTickListEntriesHashSet.remove(nextticklistentry);
                      this.pendingTickListEntriesThisTick.add(nextticklistentry);
                  }
@@ -826,7 +827,7 @@
                          if (iblockstate.getMaterial() != Material.AIR && Block.isEqualTo(iblockstate.getBlock(), nextticklistentry1.getBlock()))
                          {
                              try
-@@ -723,17 +1007,17 @@
+@@ -723,17 +1008,17 @@
                                  throw new ReportedException(crashreport);
                              }
                          }
@@ -847,7 +848,7 @@
          }
      }
  
-@@ -745,6 +1029,7 @@
+@@ -745,6 +1030,7 @@
          int j = i + 16 + 2;
          int k = (chunkpos.z << 4) - 2;
          int l = k + 16 + 2;
@@ -855,7 +856,7 @@
          return this.getPendingBlockUpdates(new StructureBoundingBox(i, 0, k, j, 256, l), remove);
      }
  
-@@ -796,21 +1081,6 @@
+@@ -796,21 +1082,6 @@
          return list;
      }
  
@@ -877,7 +878,7 @@
      private boolean canSpawnNPCs()
      {
          return this.mcServer.getCanSpawnNPCs();
-@@ -824,11 +1094,59 @@
+@@ -824,11 +1095,59 @@
      protected IChunkProvider createChunkProvider()
      {
          IChunkLoader ichunkloader = this.saveHandler.getChunkLoader(this.provider);
@@ -938,7 +939,7 @@
          return !this.mcServer.isBlockProtected(this, pos, player) && this.getWorldBorder().contains(pos);
      }
  
-@@ -894,7 +1212,24 @@
+@@ -894,7 +1213,24 @@
          }
          else
          {
@@ -963,7 +964,7 @@
              BiomeProvider biomeprovider = this.provider.getBiomeProvider();
              List<Biome> list = biomeprovider.getBiomesToSpawnIn();
              Random random = new Random(this.getSeed());
-@@ -915,7 +1250,7 @@
+@@ -915,7 +1251,7 @@
  
              int l = 0;
  
@@ -972,7 +973,7 @@
              {
                  i += random.nextInt(64) - random.nextInt(64);
                  k += random.nextInt(64) - random.nextInt(64);
-@@ -961,32 +1296,30 @@
+@@ -961,32 +1297,30 @@
      }
  
      public void saveAllChunks(boolean all, @Nullable IProgressUpdate progressCallback) throws MinecraftException
@@ -1015,7 +1016,7 @@
          }
      }
  
-@@ -1002,6 +1335,7 @@
+@@ -1002,6 +1336,7 @@
  
      protected void saveLevel() throws MinecraftException
      {
@@ -1023,7 +1024,7 @@
          this.checkSessionLock();
  
          for (WorldServer worldserver : this.mcServer.worlds)
-@@ -1012,6 +1346,12 @@
+@@ -1012,6 +1347,12 @@
              }
          }
  
@@ -1036,7 +1037,7 @@
          this.worldInfo.setBorderSize(this.getWorldBorder().getDiameter());
          this.worldInfo.getBorderCenterX(this.getWorldBorder().getCenterX());
          this.worldInfo.getBorderCenterZ(this.getWorldBorder().getCenterZ());
-@@ -1023,18 +1363,21 @@
+@@ -1023,18 +1364,21 @@
          this.worldInfo.setBorderLerpTime(this.getWorldBorder().getTimeUntilTarget());
          this.saveHandler.saveWorldInfoWithPlayer(this.worldInfo, this.mcServer.getPlayerList().getHostPlayerData());
          this.mapStorage.saveAllData();
@@ -1062,7 +1063,7 @@
              {
                  this.loadedEntityList.add(entity);
                  this.onEntityAdded(entity);
-@@ -1046,7 +1389,6 @@
+@@ -1046,7 +1390,6 @@
      {
          if (entityIn.isDead)
          {
@@ -1070,7 +1071,7 @@
              return false;
          }
          else
-@@ -1057,15 +1399,15 @@
+@@ -1057,15 +1400,15 @@
              {
                  Entity entity = this.entitiesByUuid.get(uuid);
  
@@ -1088,7 +1089,7 @@
                          return false;
                      }
  
-@@ -1113,9 +1455,17 @@
+@@ -1113,9 +1456,17 @@
  
      public boolean addWeatherEffect(Entity entityIn)
      {
@@ -1107,7 +1108,7 @@
              return true;
          }
          else
-@@ -1136,10 +1486,15 @@
+@@ -1136,10 +1487,15 @@
  
      public Explosion newExplosion(@Nullable Entity entityIn, double x, double y, double z, float strength, boolean isFlaming, boolean isSmoking)
      {
@@ -1127,7 +1128,7 @@
          if (!isSmoking)
          {
              explosion.clearAffectedBlockPositions();
-@@ -1182,7 +1537,8 @@
+@@ -1182,7 +1538,8 @@
              {
                  if (this.fireBlockEvent(blockeventdata))
                  {
@@ -1137,7 +1138,7 @@
                  }
              }
  
-@@ -1208,27 +1564,31 @@
+@@ -1208,27 +1565,31 @@
  
          if (this.prevRainingStrength != this.rainingStrength)
          {
@@ -1175,7 +1176,7 @@
          }
      }
  
-@@ -1265,11 +1625,19 @@
+@@ -1265,11 +1626,19 @@
  
      public void spawnParticle(EnumParticleTypes particleType, boolean longDistance, double xCoord, double yCoord, double zCoord, int numberOfParticles, double xOffset, double yOffset, double zOffset, double particleSpeed, int... particleArguments)
      {
@@ -1195,18 +1196,21 @@
              this.sendPacketWithinDistance(entityplayermp, longDistance, xCoord, yCoord, zCoord, spacketparticles);
          }
      }
-@@ -1297,10 +1665,6 @@
+@@ -1297,9 +1666,10 @@
          return this.entitiesByUuid.get(uuid);
      }
  
 -    public ListenableFuture<Object> addScheduledTask(Runnable runnableToSchedule)
 -    {
 -        return this.mcServer.addScheduledTask(runnableToSchedule);
--    }
++
++    @Override
++    public ListenableFuture<Object> addScheduledTask(Runnable runnableToSchedule) {
++        return this.mcServer.callFromMainThread(Executors.callable(runnableToSchedule));
+     }
  
      public boolean isCallingFromMinecraftThread()
-     {
-@@ -1323,10 +1687,15 @@
+@@ -1323,10 +1693,15 @@
          return this.functionManager;
      }
  

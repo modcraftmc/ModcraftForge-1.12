@@ -4,7 +4,7 @@
  import net.minecraft.network.Packet;
  import net.minecraft.network.PacketBuffer;
  import net.minecraft.network.play.INetHandlerPlayServer;
-+import red.mohist.common.async.MohistThreadBox;
++import red.mohist.common.async.thread.MohistThreadBox;
  
  public class CPacketChatMessage implements Packet<INetHandlerPlayServer>
  {

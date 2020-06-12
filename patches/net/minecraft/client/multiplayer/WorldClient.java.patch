@@ -1,6 +1,15 @@
 --- ../src-base/minecraft/net/minecraft/client/multiplayer/WorldClient.java
 +++ ../src-work/minecraft/net/minecraft/client/multiplayer/WorldClient.java
-@@ -60,17 +60,19 @@
+@@ -4,6 +4,8 @@
+ import java.util.Random;
+ import java.util.Set;
+ import javax.annotation.Nullable;
++
++import com.google.common.util.concurrent.ListenableFuture;
+ import net.minecraft.block.material.Material;
+ import net.minecraft.block.state.IBlockState;
+ import net.minecraft.client.Minecraft;
+@@ -60,17 +62,19 @@
  
      public WorldClient(NetHandlerPlayClient netHandler, WorldSettings settings, int dimension, EnumDifficulty difficulty, Profiler profilerIn)
      {
@@ -22,7 +31,7 @@
      }
  
      public void tick()
-@@ -113,7 +115,7 @@
+@@ -113,7 +117,7 @@
          return this.clientChunkProvider;
      }
  
@@ -31,10 +40,15 @@
      {
          return allowEmpty || !this.getChunkProvider().provideChunk(x, z).isEmpty();
      }
-@@ -510,4 +512,9 @@
+@@ -510,4 +514,14 @@
      {
          return (ChunkProviderClient)super.getChunkProvider();
      }
++
++    @Override
++    public ListenableFuture<Object> addScheduledTask(Runnable runnableToSchedule) {
++        return null;
++    }
 +
 +    @Override
 +    public boolean isCallingFromMinecraftThread() {

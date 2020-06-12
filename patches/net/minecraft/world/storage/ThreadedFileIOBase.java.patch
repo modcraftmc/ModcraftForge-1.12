@@ -7,7 +7,7 @@
 -import java.util.Collections;
  import java.util.List;
 +import java.util.concurrent.atomic.AtomicInteger;
-+import red.mohist.common.async.MohistThreadBox;
++import red.mohist.common.async.thread.MohistThreadBox;
  
  public class ThreadedFileIOBase implements Runnable
  {

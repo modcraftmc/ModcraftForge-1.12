@@ -43,7 +43,7 @@
 +import org.spigotmc.SpigotConfig;
 +import red.mohist.Metrics;
 +import red.mohist.Mohist;
-+import red.mohist.common.async.MohistThreadBox;
++import red.mohist.common.async.thread.MohistThreadBox;
 +import red.mohist.configuration.MohistConfig;
 +import red.mohist.api.event.server.BukkitServerStartDoneEvent;
 +import red.mohist.util.TPSTracker;
@@ -278,23 +278,45 @@
              }
          }
      }
-@@ -384,12 +465,15 @@
+@@ -361,21 +442,11 @@
+     public CrashReport addServerInfoToCrashReport(CrashReport report)
+     {
+         report = super.addServerInfoToCrashReport(report);
+-        report.getCategory().addDetail("Is Modded", new ICrashReportDetail<String>()
+-        {
+-            public String call() throws Exception
+-            {
+-                String s = DedicatedServer.this.getServerModName();
+-                return !"vanilla".equals(s) ? "Definitely; Server brand changed to '" + s + "'" : "Unknown (can't tell)";
+-            }
++        report.getCategory().addDetail("Is Modded", () -> {
++            String s = DedicatedServer.this.getServerModName();
++            return !"vanilla".equals(s) ? "Definitely; Server brand changed to '" + s + "'" : "Unknown (can't tell)";
+         });
+-        report.getCategory().addDetail("Type", new ICrashReportDetail<String>()
+-        {
+-            public String call() throws Exception
+-            {
+-                return "Dedicated Server (map_server.txt)";
+-            }
+-        });
++        report.getCategory().addDetail("Type", () -> "Dedicated Server (map_server.txt)");
+         return report;
+     }
+ 
+@@ -384,11 +455,6 @@
          System.exit(0);
      }
  
-+    /*
-     public void updateTimeLightAndEntities()
-     {
-         super.updateTimeLightAndEntities();
-         this.executePendingCommands();
-     }
+-    public void updateTimeLightAndEntities()
+-    {
+-        super.updateTimeLightAndEntities();
+-        this.executePendingCommands();
+-    }
  
-+     */
-+
      public boolean getAllowNether()
      {
-         return this.settings.getBooleanProperty("allow-nether", true);
-@@ -419,11 +503,20 @@
+@@ -419,11 +485,20 @@
  
      public void executePendingCommands()
      {
@@ -319,7 +341,7 @@
      }
  
      public boolean isDedicatedServer()
-@@ -515,7 +608,7 @@
+@@ -515,7 +590,7 @@
  
      public boolean isBlockProtected(World worldIn, BlockPos pos, EntityPlayer playerIn)
      {
@@ -328,7 +350,7 @@
          {
              return false;
          }
-@@ -584,6 +677,9 @@
+@@ -584,6 +659,9 @@
          return this.settings.getIntProperty("network-compression-threshold", super.getNetworkCompressionThreshold());
      }
  
@@ -338,7 +360,7 @@
      protected boolean convertFiles() throws IOException
      {
          boolean flag = false;
-@@ -673,13 +769,79 @@
+@@ -673,13 +751,79 @@
  
      public String getPlugins()
      {
