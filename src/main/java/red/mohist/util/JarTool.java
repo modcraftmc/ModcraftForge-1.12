@@ -1,6 +1,9 @@
 package red.mohist.util;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  * @Author Mgazul
@@ -42,5 +45,22 @@ public class JarTool {
             return null;
         }
         return new File(path);
+    }
+
+    public static void inputStreamFile(InputStream inputStream, String targetFilePath) {
+        File file = new File(targetFilePath);
+        try {
+            OutputStream os = new FileOutputStream(file);
+            int bytesRead = 0;
+            byte[] buffer = new byte[8192];
+            while ((bytesRead = inputStream.read(buffer, 0, 8192)) != -1) {
+                os.write(buffer, 0, bytesRead);
+            }
+            os.flush();
+            os.close();
+            inputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

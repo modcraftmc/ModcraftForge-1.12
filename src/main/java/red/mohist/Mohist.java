@@ -4,8 +4,8 @@ import org.apache.logging.log4j.Logger;
 import red.mohist.bukkit.AutoDeletePlugins;
 import red.mohist.bukkit.nms.MappingFix;
 import red.mohist.configuration.MohistConfigUtil;
-import red.mohist.down.DownloadLibraries;
-import red.mohist.down.UpdateUtils;
+import red.mohist.network.download.FileDownload;
+import red.mohist.network.download.UpdateUtils;
 import red.mohist.forge.AutoDeleteMods;
 import red.mohist.util.EulaUtil;
 import red.mohist.util.i18n.Message;
@@ -31,7 +31,18 @@ public class Mohist {
         if(System.getProperty("log4j.configurationFile") == null)
             System.setProperty("log4j.configurationFile", "log4j2_mohist.xml");
         MohistConfigUtil.copyMohistConfig();
-        if(UpdateUtils.isCheckLibs()) DownloadLibraries.run();
+        //TODO Mohist-Logo
+        System.out.println("\n" +
+                "\n" +
+                " __    __   ______   __  __   __   ______   ______  \n" +
+                "/\\ \"-./  \\ /\\  __ \\ /\\ \\_\\ \\ /\\ \\ /\\  ___\\ /\\__  _\\ \n" +
+                "\\ \\ \\-./\\ \\\\ \\ \\/\\ \\\\ \\  __ \\\\ \\ \\\\ \\___  \\\\/_/\\ \\/ \n" +
+                " \\ \\_\\ \\ \\_\\\\ \\_____\\\\ \\_\\ \\_\\\\ \\_\\\\/\\_____\\  \\ \\_\\ \n" +
+                "  \\/_/  \\/_/ \\/_____/ \\/_/\\/_/ \\/_/ \\/_____/   \\/_/ \n" +
+                "                                                    \n" +
+                "\n");
+        System.out.println("                                      " + Message.getString("forge.serverlanunchwrapper.1"));
+        if(UpdateUtils.isCheckLibs()) FileDownload.run();
         MappingFix.init();
         if(!EulaUtil.hasAcceptedEULA()) {
             System.out.println(Message.getString("eula"));

@@ -23,8 +23,14 @@ import org.apache.logging.log4j.LogManager;
 import red.mohist.Mohist;
 import red.mohist.util.i18n.Message;
 
+import java.io.*;
 import java.lang.reflect.Method;
+import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Objects;
+
+import static red.mohist.util.JarTool.inputStreamFile;
 
 public class ServerLaunchWrapper {
 
@@ -52,26 +58,13 @@ public class ServerLaunchWrapper {
         try {
             launchwrapper = Class.forName("net.minecraft.launchwrapper.Launch", true, Mohist.class.getClassLoader());
             Class.forName("org.objectweb.asm.Type", true, Mohist.class.getClassLoader());
-            System.out.println();
-            System.out.println("                   __                     __      ");
-            System.out.println(" /'\\_/`\\          /\\ \\       __          /\\ \\__   ");
-            System.out.println("/\\      \\     ___ \\ \\ \\___  /\\_\\     ____\\ \\ ,_\\  ");
-            System.out.println("\\ \\ \\__\\ \\   / __`\\\\ \\  _ `\\\\/\\ \\   /',__\\\\ \\ \\/  ");
-            System.out.println(" \\ \\ \\_/\\ \\ /\\ \\L\\ \\\\ \\ \\ \\ \\\\ \\ \\ /\\__, `\\\\ \\ \\_ ");
-            System.out.println("  \\ \\_\\\\ \\_\\\\ \\____/ \\ \\_\\ \\_\\\\ \\_\\\\/\\____/ \\ \\__\\");
-            System.out.println("   \\/_/ \\/_/ \\/___/   \\/_/\\/_/ \\/_/ \\/___/   \\/__/");
-            System.out.println();
-            System.out.println();
-            System.out.println("                        " + "/--------------------------------------------\\");
-            System.out.println("                        " + "| Mohist Development group                   |");
-            System.out.println("                        " + "| Async edition by ModcraftMC team           |");
-            System.out.println("                        " + "| https://github.com/modcraftmc/Mohist-async |");
-            System.out.println("                        " + "\\--------------------------------------------/");
+            SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//set date format
             System.out.println(Message.getString("mohist.start"));
             System.out.println(Message.getString("load.libraries"));
             Mohist.LOGGER = LogManager.getLogger("Mohist");
         } catch (Exception e) {
             System.out.println(Message.getString("mohist.start.error.nothavelibrary"));
+            System.out.println("   ");
             e.printStackTrace(System.err);
             System.exit(1);
         }

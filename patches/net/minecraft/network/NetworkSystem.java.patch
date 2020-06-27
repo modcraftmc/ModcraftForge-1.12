@@ -9,14 +9,14 @@
  import net.minecraft.client.network.NetHandlerHandshakeMemory;
  import net.minecraft.crash.CrashReport;
  import net.minecraft.crash.CrashReportCategory;
-@@ -37,6 +39,7 @@
- import net.minecraft.util.LazyLoadBase;
- import net.minecraft.util.ReportedException;
- import net.minecraft.util.text.TextComponentString;
-+import net.minecraftforge.fml.common.FMLLog;
- import net.minecraftforge.fml.relauncher.Side;
+@@ -41,6 +43,7 @@
  import net.minecraftforge.fml.relauncher.SideOnly;
  import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
++import red.mohist.util.i18n.Message;
+ 
+ public class NetworkSystem
+ {
 @@ -49,21 +52,21 @@
      {
          protected NioEventLoopGroup load()
@@ -60,6 +60,15 @@
          synchronized (this.endpoints)
          {
              Class <? extends ServerSocketChannel > oclass;
+@@ -94,7 +101,7 @@
+             {
+                 oclass = NioServerSocketChannel.class;
+                 lazyloadbase = SERVER_NIO_EVENTLOOP;
+-                LOGGER.info("Using default channel type");
++                LOGGER.info(Message.getString("mohist.start.channel_type"));
+             }
+ 
+             this.endpoints.add(((ServerBootstrap)((ServerBootstrap)(new ServerBootstrap()).channel(oclass)).childHandler(new ChannelInitializer<Channel>()
 @@ -110,9 +117,10 @@
                          ;
                      }
@@ -83,7 +92,7 @@
                      p_initChannel_1_.pipeline().addLast("packet_handler", networkmanager);
                  }
              }).group(SERVER_NIO_EVENTLOOP.getValue()).localAddress(LocalAddress.ANY)).bind().syncUninterruptibly();
-@@ -162,13 +171,22 @@
+@@ -162,8 +171,16 @@
  
      public void networkTick()
      {
@@ -100,39 +109,7 @@
              Iterator<NetworkManager> iterator = this.networkManagers.iterator();
  
              while (iterator.hasNext())
-             {
-                 final NetworkManager networkmanager = iterator.next();
-+                
- 
-                 if (!networkmanager.hasNoChannel())
-                 {
-@@ -184,36 +202,30 @@
-                             {
-                                 CrashReport crashreport = CrashReport.makeCrashReport(exception, "Ticking memory connection");
-                                 CrashReportCategory crashreportcategory = crashreport.makeCategory("Ticking connection");
--                                crashreportcategory.addDetail("Connection", new ICrashReportDetail<String>()
--                                {
--                                    public String call() throws Exception
--                                    {
--                                        return networkmanager.toString();
--                                    }
--                                });
-+                                crashreportcategory.addDetail("Connection", networkmanager::toString);
-                                 throw new ReportedException(crashreport);
-                             }
- 
-                             LOGGER.warn("Failed to handle packet for {}", networkmanager.getRemoteAddress(), exception);
-                             final TextComponentString textcomponentstring = new TextComponentString("Internal server error");
--                            networkmanager.sendPacket(new SPacketDisconnect(textcomponentstring), new GenericFutureListener < Future <? super Void >> ()
--                            {
--                                public void operationComplete(Future <? super Void > p_operationComplete_1_) throws Exception
--                                {
--                                    networkmanager.closeChannel(textcomponentstring);
--                                }
--                            });
-+                            networkmanager.sendPacket(new SPacketDisconnect(textcomponentstring), p_operationComplete_1_ -> networkmanager.closeChannel(textcomponentstring));
-                             networkmanager.disableAutoRead();
-                         }
+@@ -208,12 +225,18 @@
                      }
                      else
                      {
