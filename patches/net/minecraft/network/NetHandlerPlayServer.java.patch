@@ -899,8 +899,6 @@
  
      public void onDisconnect(ITextComponent reason)
      {
--        LOGGER.info("{} lost connection: {}", this.player.getName(), reason.getUnformattedText());
--        this.serverController.refreshStatusNextTick();
 +        // CraftBukkit start - Rarely it would send a disconnect line twice
 +        if (this.processedDisconnect) {
 +            return;
@@ -908,7 +906,8 @@
 +            this.processedDisconnect = true;
 +        }
 +        // CraftBukkit end
-+        LOGGER.info(Message.getString("server.connect.lost_connection"), this.player.getName(), reason.getUnformattedText());
+         LOGGER.info("{} lost connection: {}", this.player.getName(), reason.getUnformattedText());
+-        this.serverController.refreshStatusNextTick();
 +        // CraftBukkit start - Replace vanilla quit message handling with our own.
 +        /*
          TextComponentTranslation textcomponenttranslation = new TextComponentTranslation("multiplayer.player.left", new Object[] {this.player.getDisplayName()});
@@ -1177,7 +1176,7 @@
 +        MinecraftTimings.playerCommandTimer.startTiming(); // Spigot
 +        if (org.spigotmc.SpigotConfig.logCommands) // Spigot
 +        {
-+            LOGGER.info(this.player.getName() + Message.getString("server.command.issued_command") + command);
++            LOGGER.info(this.player.getName() + " issued server command: " + command);
 +        }
 +
 +        CraftPlayer player = this.getPlayer();

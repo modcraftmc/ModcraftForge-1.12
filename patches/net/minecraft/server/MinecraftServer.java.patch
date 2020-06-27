@@ -503,7 +503,7 @@
      }
  
      public boolean isServerRunning()
-@@ -455,65 +578,86 @@
+@@ -455,65 +578,81 @@
          this.serverRunning = false;
      }
  
@@ -555,11 +555,6 @@
 -                    {
 -                        this.tick();
 -                        i = 0L;
-+                this.serverIsRunning = true;
-+                Thread main = new Thread(new MainAsyncLoop());
-+                main.start();
-+                main.join();
-+                /*
 +                //MAINLOOP
 +                while (this.serverRunning)
 +                {
@@ -595,8 +590,8 @@
                      this.serverIsRunning = true;
                  }
 +
-+                 */
-+                 
++
++                
 +                // Spigot end
 +                FMLCommonHandler.instance().handleServerStopping();
 +                FMLCommonHandler.instance().expectServerStopped(); // has to come before finalTick to avoid race conditions
@@ -619,7 +614,7 @@
              CrashReport crashreport = null;
  
              if (throwable1 instanceof ReportedException)
-@@ -522,73 +666,75 @@
+@@ -522,73 +661,75 @@
              }
              else
              {
@@ -718,7 +713,7 @@
      @SideOnly(Side.CLIENT)
      public boolean isWorldIconSet()
      {
-@@ -615,9 +761,124 @@
+@@ -615,9 +756,124 @@
      {
      }
  
@@ -845,7 +840,7 @@
          ++this.tickCounter;
  
          if (this.startProfiling)
-@@ -634,7 +895,7 @@
+@@ -634,7 +890,7 @@
          {
              this.nanoTimeSinceStatusRefresh = i;
              this.statusResponse.setPlayers(new ServerStatusResponse.Players(this.getMaxPlayers(), this.getCurrentPlayerCount()));
@@ -854,7 +849,7 @@
              int j = MathHelper.getInt(this.random, 0, this.getCurrentPlayerCount() - agameprofile.length);
  
              for (int k = 0; k < agameprofile.length; ++k)
-@@ -644,9 +905,9 @@
+@@ -644,9 +900,9 @@
  
              Collections.shuffle(Arrays.asList(agameprofile));
              this.statusResponse.getPlayers().setPlayers(agameprofile);
@@ -866,7 +861,7 @@
          {
              this.profiler.startSection("save");
              this.playerList.saveAllPlayerData();
-@@ -654,6 +915,7 @@
+@@ -654,6 +910,7 @@
              this.profiler.endSection();
          }
  
@@ -874,7 +869,7 @@
          this.profiler.startSection("tallying");
          this.tickTimeArray[this.tickCounter % 100] = System.nanoTime() - i;
          this.profiler.endSection();
-@@ -671,89 +933,132 @@
+@@ -671,89 +928,132 @@
  
          this.profiler.endSection();
          this.profiler.endSection();
@@ -1056,7 +1051,7 @@
      }
  
      public boolean getAllowNether()
-@@ -763,8 +1068,11 @@
+@@ -763,8 +1063,11 @@
  
      public void startServerThread()
      {
@@ -1069,7 +1064,7 @@
      }
  
      public File getFile(String fileName)
-@@ -779,16 +1087,25 @@
+@@ -779,16 +1082,25 @@
  
      public WorldServer getWorld(int dimension)
      {
@@ -1100,7 +1095,7 @@
      public String getMinecraftVersion()
      {
          return "1.12.2";
-@@ -816,7 +1133,7 @@
+@@ -816,7 +1128,7 @@
  
      public String getServerModName()
      {
@@ -1109,7 +1104,7 @@
      }
  
      public CrashReport addServerInfoToCrashReport(CrashReport report)
-@@ -845,7 +1162,7 @@
+@@ -845,7 +1157,7 @@
  
      public List<String> getTabCompletions(ICommandSender sender, String input, @Nullable BlockPos pos, boolean hasTargetBlock)
      {
@@ -1118,7 +1113,7 @@
          boolean flag = input.startsWith("/");
  
          if (flag)
-@@ -862,11 +1179,9 @@
+@@ -862,11 +1174,9 @@
              {
                  if (CommandBase.doesStringStartWith(s2, s1))
                  {
@@ -1131,7 +1126,7 @@
          }
          else
          {
-@@ -879,27 +1194,29 @@
+@@ -879,27 +1189,29 @@
                  {
                      if (flag1 && !hasTargetBlock)
                      {
@@ -1167,7 +1162,7 @@
      }
  
      public void sendMessage(ITextComponent component)
-@@ -912,6 +1229,10 @@
+@@ -912,6 +1224,10 @@
          return true;
      }
  
@@ -1178,7 +1173,7 @@
      public ICommandManager getCommandManager()
      {
          return this.commandManager;
-@@ -947,13 +1268,11 @@
+@@ -947,13 +1263,11 @@
          this.folderName = name;
      }
  
@@ -1192,7 +1187,7 @@
      public String getWorldName()
      {
          return this.worldName;
-@@ -966,7 +1285,7 @@
+@@ -966,7 +1280,7 @@
  
      public void setDifficultyForAllWorlds(EnumDifficulty difficulty)
      {
@@ -1201,7 +1196,7 @@
          {
              if (worldserver1 != null)
              {
-@@ -1048,9 +1367,9 @@
+@@ -1048,9 +1362,9 @@
          playerSnooper.addClientStat("avg_tick_ms", Integer.valueOf((int)(MathHelper.average(this.tickTimeArray) * 1.0E-6D)));
          int l = 0;
  
@@ -1213,7 +1208,7 @@
              {
                  if (worldserver1 != null)
                  {
-@@ -1088,7 +1407,8 @@
+@@ -1088,7 +1402,8 @@
  
      public boolean isServerInOnlineMode()
      {
@@ -1223,7 +1218,7 @@
      }
  
      public void setOnlineMode(boolean online)
-@@ -1182,7 +1502,7 @@
+@@ -1182,7 +1497,7 @@
  
      public void setGameType(GameType gameMode)
      {
@@ -1232,7 +1227,7 @@
          {
              worldserver1.getWorldInfo().setGameType(gameMode);
          }
-@@ -1285,7 +1605,7 @@
+@@ -1285,7 +1600,7 @@
      @Nullable
      public Entity getEntityFromUuid(UUID uuid)
      {
@@ -1241,7 +1236,7 @@
          {
              if (worldserver1 != null)
              {
-@@ -1311,24 +1631,48 @@
+@@ -1311,24 +1626,48 @@
          return this;
      }
  
@@ -1297,7 +1292,7 @@
          }
          else
          {
-@@ -1341,14 +1685,15 @@
+@@ -1341,14 +1680,15 @@
                  return Futures.immediateFailedCheckedFuture(exception);
              }
          }
@@ -1317,7 +1312,7 @@
      public boolean isCallingFromMinecraftThread()
      {
          return Thread.currentThread() == this.serverThread;
-@@ -1409,124 +1754,41 @@
+@@ -1409,124 +1749,41 @@
      }
  
      @SideOnly(Side.SERVER)
@@ -1459,7 +1454,7 @@
          }
      }
  
-@@ -1539,7 +1801,8 @@
+@@ -1539,7 +1796,8 @@
      @SideOnly(Side.SERVER)
      public boolean isDebuggingEnabled()
      {
@@ -1469,7 +1464,7 @@
      }
  
      @SideOnly(Side.SERVER)
-@@ -1598,4 +1861,14 @@
+@@ -1598,4 +1856,14 @@
      {
          return this.serverThread;
      }

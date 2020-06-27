@@ -28,7 +28,7 @@
  import net.minecraftforge.fml.relauncher.SideOnly;
  import org.apache.logging.log4j.LogManager;
  import org.apache.logging.log4j.Logger;
-+import red.mohist.util.i18n.Message;
++import org.lwjgl.Sys;
  
  @SideOnly(Side.CLIENT)
  public class IntegratedServer extends MinecraftServer
@@ -98,12 +98,9 @@
          {
              this.setDifficultyForAllWorlds(this.mc.gameSettings.difficulty);
          }
-@@ -136,11 +160,12 @@
-         this.setCanSpawnNPCs(true);
-         this.setAllowPvp(true);
+@@ -138,9 +162,10 @@
          this.setAllowFlight(true);
--        LOGGER.info("Generating keypair");
-+        LOGGER.info(Message.getString("mohist.start.gen_key"));
+         LOGGER.info("Generating keypair");
          this.setKeyPair(CryptManager.generateKeyPair());
 +        if (!net.minecraftforge.fml.common.FMLCommonHandler.instance().handleServerAboutToStart(this)) return false;
          this.loadAllWorlds(this.getFolderName(), this.getWorldName(), this.worldSettings.getSeed(), this.worldSettings.getTerrainType(), this.worldSettings.getGeneratorOptions());
@@ -113,6 +110,15 @@
      }
  
      public void tick()
+@@ -167,7 +192,7 @@
+         }
+         else
+         {
+-            super.tick();
++            super.tick(System.nanoTime());
+ 
+             if (this.mc.gameSettings.renderDistanceChunks != this.getPlayerList().getViewDistance())
+             {
 @@ -213,6 +238,7 @@
  
      public EnumDifficulty getDifficulty()

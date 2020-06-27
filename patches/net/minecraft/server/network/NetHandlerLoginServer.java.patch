@@ -14,13 +14,13 @@
  import net.minecraft.util.text.ITextComponent;
 +import net.minecraft.util.text.TextComponentString;
  import net.minecraft.util.text.TextComponentTranslation;
++import net.minecraftforge.fml.common.FMLLog;
  import org.apache.commons.lang3.Validate;
  import org.apache.logging.log4j.LogManager;
  import org.apache.logging.log4j.Logger;
 +import org.bukkit.craftbukkit.v1_12_R1.util.Waitable;
 +import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 +import org.bukkit.event.player.PlayerPreLoginEvent;
-+import red.mohist.util.i18n.Message;
  
  public class NetHandlerLoginServer implements INetHandlerLoginServer, ITickable
  {
@@ -41,7 +41,7 @@
      public NetHandlerLoginServer(MinecraftServer serverIn, NetworkManager networkManagerIn)
      {
          this.server = serverIn;
-@@ -58,18 +67,22 @@
+@@ -58,28 +67,45 @@
  
      public void update()
      {
@@ -69,7 +69,11 @@
                  this.player = null;
              }
          }
-@@ -80,6 +93,19 @@
+ 
+-        if (this.connectionTimer++ == 600)
++        if (this.connectionTimer++ == 600000)
+         {
+             this.disconnect(new TextComponentTranslation("multiplayer.disconnect.slow_login", new Object[0]));
          }
      }
  
@@ -89,7 +93,7 @@
      public void disconnect(ITextComponent reason)
      {
          try
-@@ -94,22 +120,43 @@
+@@ -94,22 +120,48 @@
          }
      }
  
@@ -98,6 +102,8 @@
 +    public void initUUID()
      {
 -        if (!this.loginGameProfile.isComplete())
++
++
 +        UUID uuid;
 +        if ( networkManager.spoofedUUID != null )
          {
@@ -120,11 +126,14 @@
 +                this.loginGameProfile.getProperties().put( property.getName(), property );
 +            }
          }
++
 +    }
 +    // Spigot end
 +
 +    public void tryAcceptPlayer()
 +    {
++
++
 +        // String s = this.server.getPlayerList().allowUserToConnect(this.networkManager.getRemoteAddress(), this.loginGameProfile);
 +        // CraftBukkit start - fire PlayerLoginEvent
 +        EntityPlayerMP s = this.server.getPlayerList().allowUserToConnect(this, this.loginGameProfile, hostname);
@@ -140,7 +149,7 @@
  
              if (this.server.getNetworkCompressionThreshold() >= 0 && !this.networkManager.isLocalChannel())
              {
-@@ -127,19 +174,19 @@
+@@ -127,14 +179,15 @@
  
              if (entityplayermp != null)
              {
@@ -155,20 +164,16 @@
 +                net.minecraftforge.fml.common.network.internal.FMLNetworkHandler.fmlServerHandshake(this.server.getPlayerList(), this.networkManager, this.server.getPlayerList().createPlayerForUser(this.loginGameProfile, s));
              }
          }
++
      }
  
      public void onDisconnect(ITextComponent reason)
-     {
--        LOGGER.info("{} lost connection: {}", this.getConnectionInfo(), reason.getUnformattedText());
-+        LOGGER.info(Message.getString("server.connect.lost_connection"), this.getConnectionInfo(), reason.getUnformattedText());
-     }
- 
-     public String getConnectionInfo()
-@@ -149,23 +196,35 @@
+@@ -149,23 +202,38 @@
  
      public void processLoginStart(CPacketLoginStart packetIn)
      {
 -        Validate.validState(this.currentLoginState == NetHandlerLoginServer.LoginState.HELLO, "Unexpected hello packet");
++
 +        Validate.validState(this.currentLoginState == LoginState.HELLO, "Unexpected hello packet");
          this.loginGameProfile = packetIn.getProfile();
  
@@ -195,16 +200,18 @@
 +            }.start();
 +            // Spigot end
          }
++
      }
  
      public void processEncryptionResponse(CPacketEncryptionResponse packetIn)
      {
 -        Validate.validState(this.currentLoginState == NetHandlerLoginServer.LoginState.KEY, "Unexpected key packet");
++
 +        Validate.validState(this.currentLoginState == LoginState.KEY, "Unexpected key packet");
          PrivateKey privatekey = this.server.getKeyPair().getPrivate();
  
          if (!Arrays.equals(this.verifyToken, packetIn.getVerifyToken(privatekey)))
-@@ -175,9 +234,9 @@
+@@ -175,9 +243,9 @@
          else
          {
              this.secretKey = packetIn.getSecretKey(privatekey);
@@ -216,7 +223,7 @@
              {
                  public void run()
                  {
-@@ -190,14 +249,18 @@
+@@ -190,14 +258,18 @@
  
                          if (NetHandlerLoginServer.this.loginGameProfile != null)
                          {
@@ -238,7 +245,7 @@
                          }
                          else
                          {
-@@ -211,13 +274,17 @@
+@@ -211,13 +283,16 @@
                          {
                              NetHandlerLoginServer.LOGGER.warn("Authentication servers are down but will let them in anyway!");
                              NetHandlerLoginServer.this.loginGameProfile = NetHandlerLoginServer.this.getOfflineProfile(gameprofile);
@@ -253,18 +260,21 @@
 +                        // CraftBukkit start - catch all exceptions
 +                    } catch (Exception exception) {
 +                        disconnect(new TextComponentTranslation("Failed to verify username!"));
-+                        //
 +                        // CraftBukkit end
                      }
                  }
                  @Nullable
-@@ -230,6 +297,55 @@
+@@ -228,8 +303,60 @@
+                 }
+             }).start();
          }
++
      }
  
 +    // Spigot start
 +    public class LoginHandler {
 +        public void fireEvents() throws Exception {
++
 +            String playerName = loginGameProfile.getName();
 +            java.net.InetAddress address = ((java.net.InetSocketAddress) networkManager.getRemoteAddress()).getAddress();
 +            java.util.UUID uniqueId = loginGameProfile.getId();
@@ -305,8 +315,9 @@
 +                }
 +            }
 +            // CraftBukkit end
-+            NetHandlerLoginServer.LOGGER.info(Message.getString("server.connect.uuid"), NetHandlerLoginServer.this.loginGameProfile.getName(), NetHandlerLoginServer.this.loginGameProfile.getId());
++            NetHandlerLoginServer.LOGGER.info("UUID of player {} is {}", NetHandlerLoginServer.this.loginGameProfile.getName(), NetHandlerLoginServer.this.loginGameProfile.getId());
 +            NetHandlerLoginServer.this.currentLoginState = NetHandlerLoginServer.LoginState.READY_TO_ACCEPT;
++
 +        }
 +    }
 +    // Spigot end
