@@ -1,18 +1,20 @@
 package red.mohist.common.async.thread;
 
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 public class ThreadDispatcher {
 
     public static ThreadDispatcher instance;
 
-    private static Thread worldThread;
+    public static final Queue<Runnable> runnableList = new ConcurrentLinkedQueue();
 
 
     public static void addToPendingTask(Object arg, Runnable runnable) {
 
 
         try {
-            worldThread = new Thread(runnable);
-            worldThread.start();
+            runnableList.add(runnable);
         } catch (Exception e) {
             e.printStackTrace();
         }
