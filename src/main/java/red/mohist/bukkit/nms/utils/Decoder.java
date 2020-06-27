@@ -1,14 +1,9 @@
 package red.mohist.bukkit.nms.utils;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import me.tongfei.progressbar.ProgressBar;
+import me.tongfei.progressbar.ProgressBarStyle;
+
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -36,7 +31,12 @@ public class Decoder {
         BufferedWriter fwriter = new BufferedWriter(new OutputStreamWriter(fos));
         SrgWriter out = new SrgWriter();
 
+
+        ProgressBar progressBar = new ProgressBar("Decoding mcp...", lines.size(), ProgressBarStyle.ASCII);
+
+
         for (String line : lines) {
+            progressBar.step();
             String[] pts = line.split(" ");
             switch (pts[0]) {
                 case "CL:":
@@ -88,6 +88,7 @@ public class Decoder {
                     break;
             }
         }
+        progressBar.close();
         fwriter.close();
     }
 }

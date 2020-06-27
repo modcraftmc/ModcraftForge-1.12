@@ -1,6 +1,18 @@
 --- ../src-base/minecraft/net/minecraft/world/gen/ChunkProviderServer.java
 +++ ../src-work/minecraft/net/minecraft/world/gen/ChunkProviderServer.java
-@@ -23,18 +23,26 @@
+@@ -6,10 +6,7 @@
+ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+ import it.unimi.dsi.fastutil.objects.ObjectIterator;
+ import java.io.IOException;
+-import java.util.Collection;
+-import java.util.Iterator;
+-import java.util.List;
+-import java.util.Set;
++import java.util.*;
+ import javax.annotation.Nullable;
+ import net.minecraft.crash.CrashReport;
+ import net.minecraft.crash.CrashReportCategory;
+@@ -23,18 +20,27 @@
  import net.minecraft.world.biome.Biome;
  import net.minecraft.world.chunk.Chunk;
  import net.minecraft.world.chunk.IChunkProvider;
@@ -13,13 +25,14 @@
 +import org.bukkit.craftbukkit.v1_12_R1.chunkio.ChunkIOExecutor;
 +import org.bukkit.event.world.ChunkUnloadEvent;
 +import red.mohist.api.ServerAPI;
++import red.mohist.common.async.concurent.ThreadSafeArrayList;
 +import red.mohist.configuration.MohistConfig;
  
  public class ChunkProviderServer implements IChunkProvider
  {
      private static final Logger LOGGER = LogManager.getLogger();
 -    private final Set<Long> droppedChunksSet = Sets.<Long>newHashSet();
-+    public final Set<Long> droppedChunksSet = Sets.<Long>newHashSet();
++    public final ArrayList<Long> droppedChunksSet = new ThreadSafeArrayList(true);
      public final IChunkGenerator chunkGenerator;
      public final IChunkLoader chunkLoader;
      public final Long2ObjectMap<Chunk> id2ChunkMap = new Long2ObjectOpenHashMap<Chunk>(8192);
@@ -28,7 +41,7 @@
  
      public ChunkProviderServer(WorldServer worldObjIn, IChunkLoader chunkLoaderIn, IChunkGenerator chunkGeneratorIn)
      {
-@@ -82,32 +90,78 @@
+@@ -82,32 +88,78 @@
          return chunk;
      }
  
@@ -112,7 +125,7 @@
              long i = ChunkPos.asLong(x, z);
  
              try
-@@ -126,7 +180,8 @@
+@@ -126,7 +178,8 @@
  
              this.id2ChunkMap.put(i, chunk);
              chunk.onLoad();
@@ -122,7 +135,7 @@
          }
  
          return chunk;
-@@ -149,7 +204,7 @@
+@@ -149,7 +202,7 @@
          }
          catch (Exception exception)
          {
@@ -131,7 +144,7 @@
              return null;
          }
      }
-@@ -162,25 +217,25 @@
+@@ -162,25 +215,25 @@
          }
          catch (Exception exception)
          {
@@ -162,7 +175,7 @@
      }
  
      public boolean saveChunks(boolean all)
-@@ -205,7 +260,7 @@
+@@ -205,7 +258,7 @@
  
                  if (i == 24 && !all)
                  {
@@ -171,7 +184,7 @@
                  }
              }
          }
-@@ -224,6 +279,11 @@
+@@ -224,6 +277,11 @@
          {
              if (!this.droppedChunksSet.isEmpty())
              {
@@ -183,7 +196,7 @@
                  Iterator<Long> iterator = this.droppedChunksSet.iterator();
  
                  for (int i = 0; i < 100 && iterator.hasNext(); iterator.remove())
-@@ -233,21 +293,59 @@
+@@ -233,21 +291,59 @@
  
                      if (chunk != null && chunk.unloadQueued)
                      {
