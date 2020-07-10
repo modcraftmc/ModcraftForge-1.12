@@ -69,7 +69,7 @@ public class DimensionManager
     private static final IntSet usedIds = new IntOpenHashSet();
     private static final ConcurrentMap<World, World> weakWorldMap = new MapMaker().weakKeys().weakValues().makeMap();
     private static final Multiset<Integer> leakedWorlds = HashMultiset.create();
-    private static ArrayList<Integer> bukkitDims = new ArrayList<Integer>(); // used to keep track of Bukkit dimensions
+    private static final ArrayList<Integer> bukkitDims = new ArrayList<Integer>(); // used to keep track of Bukkit dimensions
 
     /**
      * Returns a list of dimensions associated with this DimensionType.
@@ -427,12 +427,18 @@ public class DimensionManager
             queueIterator.remove();
             dimension.ticksWaited = 0;
             // Don't unload the world if the status changed
-            if (w == null || !canUnloadWorld(w))
-            {
+            if (w == null || !canUnloadWorld(w)) {
                 FMLLog.log.debug("Aborting unload for dimension {} as status changed", id);
                 continue;
             }
-            MinecraftServer.getServerInst().server.unloadWorld(w.getWorld(), true); // Cauldron - unload through our new method for simplicity
+            boolean result = MinecraftServer.getServerInst().server.unloadWorld(w.getWorld(), true); // Cauldron - unload through our new method for simplicity
+
+            if (result) {
+                FMLLog.log.info("Succes unloaded world" + w.getProviderName());
+            } else {
+                FMLLog.log.warn("error while unloading world" + w.getProviderName());
+            }
+
         }
     }
 
@@ -636,7 +642,7 @@ public class DimensionManager
     public static void removeBukkitDimension(int dim)
     {
         if (bukkitDims.contains(dim))
-            bukkitDims.remove(bukkitDims.indexOf(dim));
+            bukkitDims.remove((Integer) dim);
     }
 
     public static ArrayList<Integer> getBukkitDimensionIDs()

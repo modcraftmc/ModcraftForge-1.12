@@ -1,6 +1,23 @@
 --- ../src-base/minecraft/net/minecraft/network/NetworkManager.java
 +++ ../src-work/minecraft/net/minecraft/network/NetworkManager.java
-@@ -26,6 +26,8 @@
+@@ -3,15 +3,7 @@
+ import com.google.common.collect.Queues;
+ import com.google.common.util.concurrent.ThreadFactoryBuilder;
+ import io.netty.bootstrap.Bootstrap;
+-import io.netty.channel.Channel;
+-import io.netty.channel.ChannelException;
+-import io.netty.channel.ChannelFuture;
+-import io.netty.channel.ChannelFutureListener;
+-import io.netty.channel.ChannelHandlerContext;
+-import io.netty.channel.ChannelInitializer;
+-import io.netty.channel.ChannelOption;
+-import io.netty.channel.EventLoopGroup;
+-import io.netty.channel.SimpleChannelInboundHandler;
++import io.netty.channel.*;
+ import io.netty.channel.epoll.Epoll;
+ import io.netty.channel.epoll.EpollEventLoopGroup;
+ import io.netty.channel.epoll.EpollSocketChannel;
+@@ -26,6 +18,8 @@
  import io.netty.util.AttributeKey;
  import io.netty.util.concurrent.Future;
  import io.netty.util.concurrent.GenericFutureListener;
@@ -9,7 +26,20 @@
  import java.net.InetAddress;
  import java.net.SocketAddress;
  import java.util.Queue;
-@@ -76,23 +78,39 @@
+@@ -66,33 +60,49 @@
+             return new EpollEventLoopGroup(0, (new ThreadFactoryBuilder()).setNameFormat("Netty Epoll Client IO #%d").setDaemon(true).build());
+         }
+     };
+-    public static final LazyLoadBase<LocalEventLoopGroup> CLIENT_LOCAL_EVENTLOOP = new LazyLoadBase<LocalEventLoopGroup>()
++    public static final LazyLoadBase<DefaultEventLoopGroup> CLIENT_LOCAL_EVENTLOOP = new LazyLoadBase<DefaultEventLoopGroup>()
+     {
+-        protected LocalEventLoopGroup load()
++        protected DefaultEventLoopGroup load()
+         {
+-            return new LocalEventLoopGroup(0, (new ThreadFactoryBuilder()).setNameFormat("Netty Local Client IO #%d").setDaemon(true).build());
++            return new DefaultEventLoopGroup(0, (new ThreadFactoryBuilder()).setNameFormat("Netty Local Client IO #%d").setDaemon(true).build());
+         }
+     };
      private final EnumPacketDirection direction;
      private final Queue<NetworkManager.InboundHandlerTuplePacketListener> outboundPacketsQueue = Queues.<NetworkManager.InboundHandlerTuplePacketListener>newConcurrentLinkedQueue();
      private final ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
@@ -51,7 +81,7 @@
  
          try
          {
-@@ -204,7 +222,7 @@
+@@ -204,7 +214,7 @@
          final EnumConnectionState enumconnectionstate = EnumConnectionState.getFromPacket(inPacket);
          final EnumConnectionState enumconnectionstate1 = (EnumConnectionState)this.channel.attr(PROTOCOL_ATTRIBUTE_KEY).get();
  
@@ -60,7 +90,7 @@
          {
              LOGGER.debug("Disabled auto read");
              this.channel.config().setAutoRead(false);
-@@ -212,7 +230,7 @@
+@@ -212,7 +222,7 @@
  
          if (this.channel.eventLoop().inEventLoop())
          {
@@ -69,7 +99,7 @@
              {
                  this.setConnectionState(enumconnectionstate);
              }
-@@ -232,7 +250,7 @@
+@@ -232,7 +242,7 @@
              {
                  public void run()
                  {
@@ -78,7 +108,7 @@
                      {
                          NetworkManager.this.setConnectionState(enumconnectionstate);
                      }
-@@ -293,9 +311,12 @@
+@@ -293,9 +303,12 @@
  
      public void closeChannel(ITextComponent message)
      {
@@ -92,7 +122,7 @@
              this.terminationReason = message;
          }
      }
-@@ -308,6 +329,7 @@
+@@ -308,6 +321,7 @@
      @SideOnly(Side.CLIENT)
      public static NetworkManager createNetworkManagerAndConnect(InetAddress address, int serverPort, boolean useNativeTransport)
      {
@@ -100,7 +130,7 @@
          final NetworkManager networkmanager = new NetworkManager(EnumPacketDirection.CLIENTBOUND);
          Class <? extends SocketChannel > oclass;
          LazyLoadBase <? extends EventLoopGroup > lazyloadbase;
-@@ -404,7 +426,7 @@
+@@ -404,7 +418,7 @@
              }
              else
              {
@@ -109,7 +139,7 @@
              }
  
              if (this.channel.pipeline().get("compress") instanceof NettyCompressionEncoder)
-@@ -454,6 +476,11 @@
+@@ -454,6 +468,11 @@
          }
      }
  
@@ -121,7 +151,7 @@
      static class InboundHandlerTuplePacketListener
          {
              private final Packet<?> packet;
-@@ -465,4 +492,12 @@
+@@ -465,4 +484,12 @@
                  this.futureListeners = inFutureListeners;
              }
          }

@@ -21,10 +21,6 @@ package net.minecraftforge.fml.common.network.handshake;
 
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.function.Consumer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.FMLLog;
@@ -41,13 +37,15 @@ import red.mohist.forge.ForgeVersion;
 import red.mohist.forge.MohistForgeUtils;
 import red.mohist.util.i18n.Message;
 
-enum FMLHandshakeServerState implements IHandshakeState<FMLHandshakeServerState>
-{
-    START
-    {
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.Consumer;
+
+enum FMLHandshakeServerState implements IHandshakeState<FMLHandshakeServerState> {
+    START {
         @Override
-        public void accept(ChannelHandlerContext ctx, FMLHandshakeMessage msg, Consumer<? super FMLHandshakeServerState> cons)
-        {
+        public void accept(ChannelHandlerContext ctx, FMLHandshakeMessage msg, Consumer<? super FMLHandshakeServerState> cons) {
             cons.accept(HELLO);
             NetworkDispatcher dispatcher = ctx.channel().attr(NetworkDispatcher.FML_DISPATCHER).get();
             int overrideDim = dispatcher.serverInitiateHandshake();
@@ -63,7 +61,7 @@ enum FMLHandshakeServerState implements IHandshakeState<FMLHandshakeServerState>
             // Hello packet first
             if (msg instanceof FMLHandshakeMessage.ClientHello)
             {
-                //FMLLog.log.info("Client protocol version {}", Integer.toHexString(((FMLHandshakeMessage.ClientHello)msg).protocolVersion()));
+                FMLLog.log.info("Client protocol version {}", Integer.toHexString(((FMLHandshakeMessage.ClientHello) msg).protocolVersion()));
                 return;
             }
 
@@ -145,5 +143,5 @@ enum FMLHandshakeServerState implements IHandshakeState<FMLHandshakeServerState>
         public void accept(ChannelHandlerContext ctx, FMLHandshakeMessage msg, Consumer<? super FMLHandshakeServerState> cons)
         {
         }
-    };
+    }
 }

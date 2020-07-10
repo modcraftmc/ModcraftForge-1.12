@@ -111,9 +111,12 @@
  
  public class NetHandlerPlayServer implements INetHandlerPlayServer, ITickable
  {
-@@ -131,7 +179,10 @@
+@@ -129,9 +177,12 @@
+     public EntityPlayerMP player;
+     private int networkTickCount;
      private long field_194402_f;
-     private boolean field_194403_g;
+-    private boolean field_194403_g;
++    private boolean doTimeout;
      private long field_194404_h;
 -    private int chatSpamThresholdCount;
 +    // CraftBukkit start - multithreaded fields
@@ -179,15 +182,26 @@
                      return;
                  }
              }
-@@ -226,7 +302,7 @@
+@@ -226,15 +302,15 @@
          this.serverController.profiler.startSection("keepAlive");
          long i = this.currentTimeMillis();
  
 -        if (i - this.field_194402_f >= 15000L)
 +        if (i - this.field_194402_f >= 25000L) // CraftBukkit
          {
-             if (this.field_194403_g)
+-            if (this.field_194403_g)
++            if (this.doTimeout)
              {
+-                this.disconnect(new TextComponentTranslation("disconnect.timeout", new Object[0]));
++                //this.disconnect(new TextComponentTranslation("disconnect.timeout", new Object[0]));
+             }
+             else
+             {
+-                this.field_194403_g = true;
++                this.doTimeout = true;
+                 this.field_194402_f = i;
+                 this.field_194404_h = i;
+                 this.sendPacket(new SPacketKeepAlive(this.field_194404_h));
 @@ -242,24 +318,33 @@
          }
  
@@ -1810,22 +1824,25 @@
              tileentitysign.markDirty();
              worldserver.notifyBlockUpdate(blockpos, iblockstate, iblockstate, 3);
          }
-@@ -1308,6 +2392,7 @@
+@@ -1308,15 +2392,20 @@
  
      public void processKeepAlive(CPacketKeepAlive packetIn)
      {
+-        if (this.field_194403_g && packetIn.getKey() == this.field_194404_h)
 +        //PacketThreadUtil.checkThreadAndEnqueue(packetIn, this, this.player.getServerWorld()); // CraftBukkit // Paper - This shouldn't be on the main thread
-         if (this.field_194403_g && packetIn.getKey() == this.field_194404_h)
++        if (this.doTimeout && packetIn.getKey() == this.field_194404_h)
          {
              int i = (int)(this.currentTimeMillis() - this.field_194402_f);
-@@ -1316,7 +2401,11 @@
+             this.player.ping = (this.player.ping * 3 + i) / 4;
+-            this.field_194403_g = false;
++            this.doTimeout = false;
          }
          else if (!this.player.getName().equals(this.serverController.getServerOwner()))
          {
 -            this.disconnect(new TextComponentTranslation("disconnect.timeout", new Object[0]));
 +            // Paper start - This needs to be handled on the main thread for plugins
 +            LOGGER.warn("{} sent an invalid keepalive! pending keepalive: {} got id: {} expected id: {}",
-+                    this.player.getName(), this.field_194403_g,  packetIn.getKey(), this.field_194404_h);
++                    this.player.getName(), this.doTimeout,  packetIn.getKey(), this.field_194404_h);
 +            serverController.addScheduledTask(() -> this.disconnect(new TextComponentTranslation("disconnect.timeout", new Object[0])));
 +            // Paper end
          }

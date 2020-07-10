@@ -23,23 +23,36 @@
  import net.minecraft.entity.player.EntityPlayerMP;
  import net.minecraft.util.math.BlockPos;
  import net.minecraft.util.math.ChunkPos;
-@@ -20,6 +24,7 @@
+@@ -20,6 +24,8 @@
  import net.minecraft.world.WorldProvider;
  import net.minecraft.world.WorldServer;
  import net.minecraft.world.chunk.Chunk;
 +import net.minecraftforge.common.util.ChunkCoordComparator;
++import red.mohist.common.async.concurent.ThreadSafeArrayList;
  
  public class PlayerChunkMap
  {
-@@ -45,6 +50,7 @@
-     private final List<PlayerChunkMapEntry> entriesWithoutChunks = Lists.<PlayerChunkMapEntry>newLinkedList();
-     private final List<PlayerChunkMapEntry> entries = Lists.<PlayerChunkMapEntry>newArrayList();
+@@ -38,13 +44,14 @@
+         }
+     };
+     private final WorldServer world;
+-    private final List<EntityPlayerMP> players = Lists.<EntityPlayerMP>newArrayList();
++    private final List<EntityPlayerMP> players = new ArrayList<>();
+     private final Long2ObjectMap<PlayerChunkMapEntry> entryMap = new Long2ObjectOpenHashMap<PlayerChunkMapEntry>(4096);
+-    private final Set<PlayerChunkMapEntry> dirtyEntries = Sets.<PlayerChunkMapEntry>newHashSet();
+-    private final List<PlayerChunkMapEntry> pendingSendToPlayers = Lists.<PlayerChunkMapEntry>newLinkedList();
+-    private final List<PlayerChunkMapEntry> entriesWithoutChunks = Lists.<PlayerChunkMapEntry>newLinkedList();
+-    private final List<PlayerChunkMapEntry> entries = Lists.<PlayerChunkMapEntry>newArrayList();
++    private final ArrayList<PlayerChunkMapEntry> dirtyEntries = new ThreadSafeArrayList<>(true);
++    private final List<PlayerChunkMapEntry> pendingSendToPlayers = new ThreadSafeArrayList<>(true);
++    private final List<PlayerChunkMapEntry> entriesWithoutChunks = new ThreadSafeArrayList<>(true);
++    private final ArrayList<PlayerChunkMapEntry> entries = new ThreadSafeArrayList<>(true);
      private int playerViewRadius;
 +    public int getViewDistance() { return playerViewRadius; } // Paper OBFHELPER
      private long previousTotalWorldTime;
      private boolean sortMissingChunks = true;
      private boolean sortSendToPlayers = true;
-@@ -52,7 +58,7 @@
+@@ -52,7 +59,7 @@
      public PlayerChunkMap(WorldServer serverWorld)
      {
          this.world = serverWorld;
@@ -48,7 +61,7 @@
      }
  
      public WorldServer getWorldServer()
-@@ -109,6 +115,7 @@
+@@ -109,6 +116,7 @@
  
          if (i - this.previousTotalWorldTime > 8000L)
          {
@@ -56,7 +69,7 @@
              this.previousTotalWorldTime = i;
  
              for (int j = 0; j < this.entries.size(); ++j)
-@@ -117,21 +124,25 @@
+@@ -117,21 +125,25 @@
                  playerchunkmapentry.update();
                  playerchunkmapentry.updateChunkInhabitedTime();
              }
@@ -82,7 +95,7 @@
              Collections.sort(this.entriesWithoutChunks, new Comparator<PlayerChunkMapEntry>()
              {
                  public int compare(PlayerChunkMapEntry p_compare_1_, PlayerChunkMapEntry p_compare_2_)
-@@ -139,11 +150,13 @@
+@@ -139,11 +151,13 @@
                      return ComparisonChain.start().compare(p_compare_1_.getClosestPlayerDistance(), p_compare_2_.getClosestPlayerDistance()).result();
                  }
              });
@@ -96,7 +109,7 @@
              Collections.sort(this.pendingSendToPlayers, new Comparator<PlayerChunkMapEntry>()
              {
                  public int compare(PlayerChunkMapEntry p_compare_1_, PlayerChunkMapEntry p_compare_2_)
-@@ -151,10 +164,12 @@
+@@ -151,10 +165,12 @@
                      return ComparisonChain.start().compare(p_compare_1_.getClosestPlayerDistance(), p_compare_2_.getClosestPlayerDistance()).result();
                  }
              });
@@ -109,7 +122,7 @@
              long l = System.nanoTime() + 50000000L;
              int k = 49;
              Iterator<PlayerChunkMapEntry> iterator = this.entriesWithoutChunks.iterator();
-@@ -183,13 +198,18 @@
+@@ -183,13 +199,18 @@
                              break;
                          }
                      }
@@ -128,7 +141,7 @@
              Iterator<PlayerChunkMapEntry> iterator1 = this.pendingSendToPlayers.iterator();
  
              while (iterator1.hasNext())
-@@ -207,16 +227,19 @@
+@@ -207,16 +228,19 @@
                      }
                  }
              }
@@ -149,7 +162,7 @@
          }
      }
  
-@@ -257,6 +280,16 @@
+@@ -257,6 +281,16 @@
          return playerchunkmapentry;
      }
  
@@ -166,7 +179,7 @@
      public void markBlockForUpdate(BlockPos pos)
      {
          int i = pos.getX() >> 4;
-@@ -276,14 +309,26 @@
+@@ -276,14 +310,26 @@
          player.managedPosX = player.posX;
          player.managedPosZ = player.posZ;
  
@@ -196,7 +209,7 @@
          this.players.add(player);
          this.markSortPending();
      }
-@@ -293,10 +338,13 @@
+@@ -293,10 +339,13 @@
          int i = (int)player.managedPosX >> 4;
          int j = (int)player.managedPosZ >> 4;
  
@@ -212,7 +225,7 @@
                  PlayerChunkMapEntry playerchunkmapentry = this.getEntry(k, l);
  
                  if (playerchunkmapentry != null)
-@@ -337,19 +385,23 @@
+@@ -337,19 +386,23 @@
          {
              int k = (int)player.managedPosX >> 4;
              int l = (int)player.managedPosZ >> 4;
@@ -239,7 +252,7 @@
                          }
  
                          if (!this.overlaps(l1 - j1, i2 - k1, i, j, i1))
-@@ -367,6 +419,12 @@
+@@ -367,6 +420,12 @@
                  player.managedPosX = player.posX;
                  player.managedPosZ = player.posZ;
                  this.markSortPending();
@@ -252,7 +265,7 @@
              }
          }
      }
-@@ -377,6 +435,7 @@
+@@ -377,6 +436,7 @@
          return playerchunkmapentry != null && playerchunkmapentry.containsPlayer(player) && playerchunkmapentry.isSentToPlayers();
      }
  
@@ -260,7 +273,7 @@
      public void setPlayerViewRadius(int radius)
      {
          radius = MathHelper.clamp(radius, 3, 32);
-@@ -387,43 +446,54 @@
+@@ -387,43 +447,54 @@
  
              for (EntityPlayerMP entityplayermp : Lists.newArrayList(this.players))
              {
@@ -341,7 +354,7 @@
  
      private void markSortPending()
      {
-@@ -456,11 +526,73 @@
+@@ -456,11 +527,73 @@
          this.dirtyEntries.remove(entry);
          this.pendingSendToPlayers.remove(entry);
          this.entriesWithoutChunks.remove(entry);

@@ -28,21 +28,9 @@ import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.util.AttributeKey;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
-import java.io.IOException;
-import java.net.SocketAddress;
-import java.nio.channels.ClosedChannelException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.EnumConnectionState;
-import net.minecraft.network.INetHandler;
-import net.minecraft.network.NetHandlerPlayServer;
-import net.minecraft.network.NetworkManager;
-import net.minecraft.network.Packet;
-import net.minecraft.network.PacketBuffer;
+import net.minecraft.network.*;
 import net.minecraft.network.play.INetHandlerPlayClient;
 import net.minecraft.network.play.client.CPacketCustomPayload;
 import net.minecraft.network.play.server.SPacketCustomPayload;
@@ -55,35 +43,41 @@ import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.FMLLog;
-import net.minecraftforge.fml.common.network.FMLNetworkEvent;
-import net.minecraftforge.fml.common.network.FMLNetworkException;
-import net.minecraftforge.fml.common.network.FMLOutboundHandler;
-import net.minecraftforge.fml.common.network.NetworkRegistry;
-import net.minecraftforge.fml.common.network.PacketLoggingHandler;
+import net.minecraftforge.fml.common.network.*;
 import net.minecraftforge.fml.common.network.internal.FMLMessage;
 import net.minecraftforge.fml.common.network.internal.FMLNetworkHandler;
 import net.minecraftforge.fml.common.network.internal.FMLProxyPacket;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.registries.ForgeRegistry;
 
+import java.io.IOException;
+import java.net.SocketAddress;
+import java.nio.channels.ClosedChannelException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 // TODO build test suites to validate the behaviour of this stuff and make it less annoyingly magical
 public class NetworkDispatcher extends SimpleChannelInboundHandler<Packet<?>> implements ChannelOutboundHandler {
-    private static boolean DEBUG_HANDSHAKE = Boolean.parseBoolean(System.getProperty("fml.debugNetworkHandshake", "false"));
-    private static enum ConnectionState {
+    private static final boolean DEBUG_HANDSHAKE = Boolean.parseBoolean(System.getProperty("fml.debugNetworkHandshake", "false"));
+
+    void clientListenForServerHandshake() {
+        manager.setConnectionState(EnumConnectionState.PLAY);
+
+        this.netHandler = FMLCommonHandler.instance().getClientPlayHandler();
+        this.state = ConnectionState.AWAITING_HANDSHAKE;
+    }
+
+    private enum ConnectionState {
         OPENING, AWAITING_HANDSHAKE, HANDSHAKING, HANDSHAKECOMPLETE, FINALIZING, CONNECTED
     }
 
-    public static enum ConnectionType {
-        MODDED, BUKKIT, VANILLA
-    }
-
-    public static NetworkDispatcher get(NetworkManager manager)
-    {
+    public static NetworkDispatcher get(NetworkManager manager) {
         return manager.channel().attr(FML_DISPATCHER).get();
     }
 
-    public static NetworkDispatcher allocAndSet(NetworkManager manager)
-    {
+    public static NetworkDispatcher allocAndSet(NetworkManager manager) {
         NetworkDispatcher net = new NetworkDispatcher(manager);
         manager.channel().attr(FML_DISPATCHER).getAndSet(net);
         return net;
@@ -222,27 +216,20 @@ public class NetworkDispatcher extends SimpleChannelInboundHandler<Packet<?>> im
         // Return the dimension the player is in, so it can be pre-sent to the client in the ServerHello v2 packet
         // Requires some hackery to the serverconfigmanager and stuff for this to work
         NBTTagCompound playerNBT = scm.getPlayerNBT(player);
-        if (playerNBT!=null)
-        {
+        if (playerNBT!=null) {
             int dimension = playerNBT.getInteger("Dimension");
-            if (DimensionManager.isDimensionRegistered(dimension))
-            {
+            if (DimensionManager.isDimensionRegistered(dimension)) {
                 return dimension;
             }
         }
         return 0;
     }
 
-    void clientListenForServerHandshake()
-    {
-        manager.setConnectionState(EnumConnectionState.PLAY);
-        //FMLCommonHandler.instance().waitForPlayClient();
-        this.netHandler = FMLCommonHandler.instance().getClientPlayHandler();
-        this.state = ConnectionState.AWAITING_HANDSHAKE;
+    public enum ConnectionType {
+        MODDED, BUKKIT, VANILLA
     }
 
-    private void completeClientSideConnection(ConnectionType type)
-    {
+    private void completeClientSideConnection(ConnectionType type) {
         this.connectionType = type;
         FMLLog.log.info("[{}] Client side {} connection established", Thread.currentThread().getName(), this.connectionType.name().toLowerCase(Locale.ENGLISH));
         this.state = ConnectionState.CONNECTED;
@@ -629,17 +616,15 @@ public class NetworkDispatcher extends SimpleChannelInboundHandler<Packet<?>> im
         return this.overrideLoginDim != 0 ? this.overrideLoginDim : packetIn.getDimension();
     }
 
-    private class MultiPartCustomPayload extends SPacketCustomPayload
-    {
-        private String channel;
-        private byte[] data;
+    private class MultiPartCustomPayload extends SPacketCustomPayload {
+        private final String channel;
+        private final byte[] data;
         private PacketBuffer data_buf = null;
         private int part_count = 0;
         private int part_expected = 0;
         private int offset = 0;
 
-        private MultiPartCustomPayload(PacketBuffer preamble) throws IOException
-        {
+        private MultiPartCustomPayload(PacketBuffer preamble) throws IOException {
             channel = preamble.readString(20);
             part_count = preamble.readUnsignedByte();
             int length = preamble.readInt();

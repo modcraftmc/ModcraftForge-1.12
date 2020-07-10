@@ -1299,7 +1299,7 @@
 +            if (except == null) skipBukkitCheck = true;
 +
 +            if (!skipBukkitCheck) {
-+                if (except != entityplayermp && except instanceof EntityPlayerMP && !entityplayermp.getBukkitEntity().canSee(((EntityPlayerMP) except).getBukkitEntity())) {
++                if (except instanceof EntityPlayerMP && !entityplayermp.getBukkitEntity().canSee(((EntityPlayerMP) except).getBukkitEntity())) {
 +                    continue;
 +                }
 +            }
