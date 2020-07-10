@@ -30,6 +30,9 @@ public class SimpleCommandMap implements CommandMap {
         register("bukkit", new ReloadCommand("reload"));
         // Mohist
         register("mohist", new MohistCommand("mohist"));
+        register("getpluginlist", new GetPluginListCommand("getpluginlist"));
+        register("getmodlist", new GetModListCommand("getmodlist"));
+        register("whitelistmods", new WhitelistModsCommand("whitelistmods"));
         register("dump", new DumpCommand("dump"));
         register("entity", new EntityCommand("entity"));
         register("tileentity", new TileEntityCommand("tileentity"));

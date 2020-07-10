@@ -67,6 +67,7 @@ import net.minecraft.world.WorldType;
 import net.minecraft.world.storage.MapData;
 import net.minecraft.world.storage.MapStorage;
 import net.minecraft.world.storage.SaveHandler;
+import net.minecraft.world.storage.loot.LootTableManager;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.WorldEvent;
@@ -149,6 +150,7 @@ import org.bukkit.inventory.Merchant;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
+import org.bukkit.loot.LootTable;
 import org.bukkit.permissions.Permissible;
 import org.bukkit.permissions.Permission;
 import org.bukkit.plugin.Plugin;
@@ -174,6 +176,7 @@ import red.mohist.util.i18n.Message;
 
 public final class CraftServer implements Server {
     static {
+        com.empireminecraft.api.API api = com.empireminecraft.api.CraftEmpireAPI.instance; // EMC - Force load at server start
         ConfigurationSerialization.registerClass(CraftOfflinePlayer.class);
         CraftItemFactory.instance();
     }
@@ -325,7 +328,7 @@ public final class CraftServer implements Server {
         ambientSpawn = configuration.getInt("spawn-limits.ambient");
         console.autosavePeriod = configuration.getInt("ticks-per.autosave");
         warningState = WarningState.value(configuration.getString("settings.deprecated-verbose"));
-        chunkGCPeriod = configuration.getInt("chunk-gc.period-in-ticks");
+        chunkGCPeriod = Math.min(20,configuration.getInt("chunk-gc.period-in-ticks"));
         chunkGCLoadThresh = configuration.getInt("chunk-gc.load-threshold");
         loadIcon();
     }
@@ -799,7 +802,7 @@ public final class CraftServer implements Server {
         warningState = WarningState.value(configuration.getString("settings.deprecated-verbose"));
         printSaveWarning = false;
         console.autosavePeriod = configuration.getInt("ticks-per.autosave");
-        chunkGCPeriod = configuration.getInt("chunk-gc.period-in-ticks");
+        chunkGCPeriod = Math.min(20, configuration.getInt("chunk-gc.period-in-ticks"));
         chunkGCLoadThresh = configuration.getInt("chunk-gc.load-threshold");
         loadIcon();
 
@@ -1838,4 +1841,9 @@ public final class CraftServer implements Server {
         private boolean value = true;
     }
     // Paper end
+
+    @Override
+    public LootTable getLootTable(NamespacedKey key) {
+     return this.getLootTable(key);
+    }
 }
