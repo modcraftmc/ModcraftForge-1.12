@@ -40,18 +40,9 @@
      {
          return allowEmpty || !this.getChunkProvider().provideChunk(x, z).isEmpty();
      }
-@@ -510,4 +514,14 @@
+@@ -510,4 +514,5 @@
      {
          return (ChunkProviderClient)super.getChunkProvider();
      }
 +
-+    @Override
-+    public ListenableFuture<Object> addScheduledTask(Runnable runnableToSchedule) {
-+        return null;
-+    }
-+
-+    @Override
-+    public boolean isCallingFromMinecraftThread() {
-+        return false;
-+    }
  }
